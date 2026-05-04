@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
@@ -7,17 +7,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.customVideoPlayer"
+    namespace = "com.example.video_player_lib"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.customVideoPlayer"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {
@@ -38,7 +34,6 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
-
     buildFeatures {
         compose = true
     }
@@ -81,7 +76,4 @@ dependencies {
     // load image
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil-video:2.7.0")
-
-    // lib
-    implementation(project(":video-player-lib"))
 }
