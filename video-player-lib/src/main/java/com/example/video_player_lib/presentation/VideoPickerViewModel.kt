@@ -131,6 +131,21 @@ class VideoPickerViewModel @Inject constructor(
         seekTo(exoPlayer.currentPosition - 5000)
     }
 
+    fun skipForward(position: Long) {
+        seekTo(exoPlayer.currentPosition + position)
+    }
+
+    fun skipBackward(position: Long) {
+        seekTo(exoPlayer.currentPosition - position)
+    }
+
+    fun onLongPress() {
+        setPlaybackSpeed(2f)
+    }
+    fun onLongPress(palyBackFast : Float){
+        setPlaybackSpeed(palyBackFast)
+    }
+
     fun setPlaybackSpeed(speed: Float) {
         exoPlayer.setPlaybackSpeed(speed)
     }

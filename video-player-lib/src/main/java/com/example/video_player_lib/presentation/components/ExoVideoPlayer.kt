@@ -206,14 +206,14 @@ fun ExoVideoPlayer(
                         }
                     },
                     onLongPress = {
-                        viewModel.exoPlayer.setPlaybackSpeed(2.0f)
+                        viewModel.onLongPress(2.0f)
                         isShowFastForward = true
                     },
                     onPress = {
                         try {
                             awaitRelease()
                         } finally {
-                            viewModel.exoPlayer.setPlaybackSpeed(1.0f)
+                            viewModel.onLongPress(1.0f)
                             isShowFastForward = false
                         }
                     }

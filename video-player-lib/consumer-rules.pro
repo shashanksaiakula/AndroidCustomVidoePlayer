@@ -7,3 +7,4 @@
 # Media3/ExoPlayer might need specific keeps if they aren't already included in their own consumer rules
 -keep class androidx.media3.exoplayer.** { *; }
 -keep class androidx.media3.common.** { *; }
+-keep class com.example.video_player_lib.VideoPlayerApi { *; }

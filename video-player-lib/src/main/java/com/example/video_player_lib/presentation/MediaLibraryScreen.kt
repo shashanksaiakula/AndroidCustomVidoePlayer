@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.ImageLoader
 import coil.decode.VideoFrameDecoder
 import coil.request.CachePolicy
+import com.example.video_player_lib.utils.PermissionUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -84,11 +85,7 @@ fun MediaLibraryScreen(
         }
     }
 
-    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        Manifest.permission.READ_MEDIA_VIDEO
-    } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE
-    }
+    val permission = PermissionUtils.getVideoPermission()
 
     val permissionState = rememberPermissionState(permission)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -185,8 +182,7 @@ fun MediaLibraryScreen(
 // Execute actual delete logic
                     selectedItem?.let { video ->
                         // Check if we have "All Files Access" (MANAGE_EXTERNAL_STORAGE)
-                        val hasAllFilesAccess =
-                            Environment.isExternalStorageManager()
+                        val hasAllFilesAccess = PermissionUtils.hasAllFilesAccess()
 
                         if (hasAllFilesAccess) {
                             // Delete directly - No Google dialog will show
@@ -222,8 +218,7 @@ fun MediaLibraryScreen(
                 onConfirm = { newName ->
                     showRename = false
                     selectedItem?.let { video ->
-                        val hasAllFilesAccess =
-                            Environment.isExternalStorageManager()
+                        val hasAllFilesAccess = PermissionUtils.hasAllFilesAccess()
                         if (hasAllFilesAccess) {
                             try {
                                 val values = ContentValues().apply {

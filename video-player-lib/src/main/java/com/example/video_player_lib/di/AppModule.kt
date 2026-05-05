@@ -12,6 +12,7 @@ import androidx.media3.exoplayer.RenderersFactory
 import androidx.media3.exoplayer.SeekParameters
 import com.example.video_player_lib.domin.repository.VideoRepository
 import com.example.video_player_lib.repository.VideoRepositoryImpl
+import com.example.video_player_lib.utils.ExoPlayerUtils
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -61,11 +62,6 @@ object AppModule {
         renderersFactory: RenderersFactory,
         loadControl: LoadControl
     ): ExoPlayer {
-        return ExoPlayer.Builder(context, renderersFactory)
-            .setSeekParameters(SeekParameters.EXACT)
-            .setLoadControl(loadControl)
-            .build().apply {
-                videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
-            }
+        return ExoPlayerUtils.createExoPlayerWithDeps(context, renderersFactory, loadControl)
     }
 }
