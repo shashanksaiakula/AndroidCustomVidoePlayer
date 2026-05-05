@@ -92,4 +92,39 @@ object VideoPlayerApi {
     fun onLongDefault() {
         viewModel?.onLongPress()
     }
+    fun stop(){
+        exoPlayer?.stop()
+    }
+
+    private var playerListener: VideoPlayerListener? = null
+
+    fun setListener(listener: VideoPlayerListener) {
+        this.playerListener = listener
+        // Attach to ExoPlayer
+        exoPlayer?.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                playerListener?.onPlaybackStateChanged(playbackState)
+            }
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                playerListener?.onIsPlayingChanged(isPlaying)
+            }
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                playerListener?.onPlayerError(error.message ?: "Unknown Error")
+            }
+        })
+    }
+    /** Returns percentage (0-100) of content buffered */
+    fun getBufferedPercentage(): Int = exoPlayer?.bufferedPercentage ?: 0
+
+    /** Returns the actual buffered position in Ms */
+    fun getBufferedPosition(): Long = exoPlayer?.bufferedPosition ?: 0L
+
+    // to play muultiple videos
+    fun getMediaMetadata(): androidx.media3.common.MediaMetadata? = exoPlayer?.mediaMetadata
+}
+
+interface VideoPlayerListener {
+    fun onPlaybackStateChanged(state: Int) // IDLE, BUFFERING, READY, ENDED
+    fun onIsPlayingChanged(isPlaying: Boolean)
+    fun onPlayerError(error: String)
 }
