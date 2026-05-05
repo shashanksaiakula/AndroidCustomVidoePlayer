@@ -59,6 +59,7 @@ object VideoPlayerApi {
         val newPos = (exoPlayer?.currentPosition ?: 0) + skipForward
         seekTo(newPos)
     }
+
     fun skipBackward(skipBackward: Long = 5000) {
         val newPos = (exoPlayer?.currentPosition ?: 0) - skipBackward
         seekTo(newPos)
@@ -87,7 +88,8 @@ object VideoPlayerApi {
     fun onLongPress(speed: Float) {
         viewModel?.onLongPress(speed)
     }
-    fun onLongDefault(){
+
+    fun onLongDefault() {
         viewModel?.onLongPress()
     }
 }
