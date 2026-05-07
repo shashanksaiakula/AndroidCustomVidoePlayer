@@ -2,14 +2,12 @@ package com.example.video_player_lib
 
 import android.content.Context
 import android.net.Uri
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import com.example.video_player_lib.presentation.VideoPickerViewModel
 import com.example.video_player_lib.repository.VideoRepositoryImpl
 import com.example.video_player_lib.utils.ExoPlayerUtils
 import dagger.hilt.android.UnstableApi
-import com.example.video_player_lib.utils.PermissionUtils
 
 @OptIn(UnstableApi::class)
 object VideoPlayerApi {
@@ -23,7 +21,7 @@ object VideoPlayerApi {
              * Initializes the video player with the given context.
              * @param context The application context.
              */
-    fun initialize(context: Context) {
+    fun initialize(context: Context) : VideoPlayerApi {
         if (exoPlayer == null) {
             this.context = context
             // i want to use for mapp module
@@ -31,6 +29,7 @@ object VideoPlayerApi {
             val repository = VideoRepositoryImpl(context)
             viewModel = VideoPickerViewModel(repository, exoPlayer!!)
         }
+            return this
     }
 
     /**
@@ -72,19 +71,6 @@ object VideoPlayerApi {
         viewModel = null
     }
 
-    fun getCurrentPosition(): Long = exoPlayer?.currentPosition ?: 0L
-    fun getDuration(): Long = exoPlayer?.duration ?: 0L
-    fun isPlaying(): Boolean = exoPlayer?.isPlaying ?: false
-    fun getVideoId(): Long = viewModel?.selectedVideoId?.value ?: 0L
-    fun getTabSelected(): String = viewModel?.tabSelected?.value ?: "notes"
-    fun getListOfNotes(): Map<Long, List<String>> = viewModel?.listOfNotes?.value ?: emptyMap()
-    fun getVideoUri(): Uri? = viewModel?.uiState?.value?.videos?.find { it.id == getVideoId() }?.uri
-
-    fun getVideoPermssion(): String = PermissionUtils.getVideoPermission()
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    fun hasAllFilesAccess(): Boolean = PermissionUtils.hasAllFilesAccess()
-
     fun onLongPress(speed: Float) {
         viewModel?.onLongPress(speed)
     }
@@ -92,7 +78,7 @@ object VideoPlayerApi {
     fun onLongDefault() {
         viewModel?.onLongPress()
     }
-    fun stop(){
+    fun stop() {
         exoPlayer?.stop()
     }
 
@@ -121,7 +107,13 @@ object VideoPlayerApi {
 
     // to play muultiple videos
     fun getMediaMetadata(): androidx.media3.common.MediaMetadata? = exoPlayer?.mediaMetadata
+
+    // return player view
+    fun getPlayerView(): PlayerView? {
+        return  ExoPlayerUtils.getPlayerView(context!!, exoPlayer)
+    }
 }
+
 
 interface VideoPlayerListener {
     fun onPlaybackStateChanged(state: Int) // IDLE, BUFFERING, READY, ENDED

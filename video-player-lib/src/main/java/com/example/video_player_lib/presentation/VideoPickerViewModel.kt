@@ -96,6 +96,11 @@ class VideoPickerViewModel @Inject constructor(
         }
     }
 
+    fun retunVideoLsitStatus() : VideoPickerUiState{
+        loadVideos()
+        return uiState.value
+    }
+
     fun onBackPress(isPressed: Boolean) {
         _isPressed.value = isPressed
     }

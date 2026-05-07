@@ -85,7 +85,7 @@ fun MediaLibraryScreen(
         }
     }
 
-    val permission = PermissionUtils.getVideoPermission()
+    val permission = PermissionUtils.getVideoPermissionString()
 
     val permissionState = rememberPermissionState(permission)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

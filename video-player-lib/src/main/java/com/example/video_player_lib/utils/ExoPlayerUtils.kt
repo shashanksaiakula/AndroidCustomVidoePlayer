@@ -10,6 +10,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.RenderersFactory
 import androidx.media3.exoplayer.SeekParameters
+import androidx.media3.ui.PlayerView
 
 @OptIn(UnstableApi::class)
 object ExoPlayerUtils {
@@ -38,5 +39,12 @@ object ExoPlayerUtils {
             .apply {
                 videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
             }
+    }
+    fun getPlayerView(context: Context, exoPlayer: ExoPlayer?) : PlayerView {
+        return PlayerView(context).apply {
+            player = exoPlayer
+            useController = false
+        }
+
     }
 }
