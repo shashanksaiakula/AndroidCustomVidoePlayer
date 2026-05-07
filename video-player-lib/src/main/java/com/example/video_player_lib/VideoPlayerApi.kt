@@ -2,8 +2,8 @@ package com.example.video_player_lib
 
 import android.content.Context
 import android.net.Uri
+import android.view.View
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import com.example.video_player_lib.presentation.VideoPickerViewModel
 import com.example.video_player_lib.repository.VideoRepositoryImpl
 import com.example.video_player_lib.utils.ExoPlayerUtils
@@ -109,7 +109,7 @@ object VideoPlayerApi {
     fun getMediaMetadata(): androidx.media3.common.MediaMetadata? = exoPlayer?.mediaMetadata
 
     // return player view
-    fun getPlayerView(): PlayerView? {
+    fun getPlayerView(): View {
         return  ExoPlayerUtils.getPlayerView(context!!, exoPlayer)
     }
 }

@@ -60,10 +60,10 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
 
     // Media3
-    val media3Version = "1.4.1"
-    implementation("androidx.media3:media3-exoplayer:$media3Version")
-    implementation("androidx.media3:media3-ui:$media3Version")
-    implementation("androidx.media3:media3-common:$media3Version")
+//    val media3Version = "1.4.1"
+//    implementation("androidx.media3:media3-exoplayer:$media3Version")
+//    implementation("androidx.media3:media3-ui:$media3Version")
+//    implementation("androidx.media3:media3-common:$media3Version")
 
     // Permissions
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")

@@ -1,6 +1,7 @@
 package com.example.video_player_lib.utils
 
 import android.content.Context
+import android.view.View
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
@@ -40,7 +41,7 @@ object ExoPlayerUtils {
                 videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
             }
     }
-    fun getPlayerView(context: Context, exoPlayer: ExoPlayer?) : PlayerView {
+    fun getPlayerView(context: Context, exoPlayer: ExoPlayer?) : View {
         return PlayerView(context).apply {
             player = exoPlayer
             useController = false

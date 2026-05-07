@@ -2,7 +2,6 @@ package com.example.customVideoPlayer
 
 import android.net.Uri
 import android.os.Build
-import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,7 +26,7 @@ fun myComopse(modifier: Modifier = Modifier) {
         // 1. Use AndroidView to display the PlayerView
         AndroidView(
             factory = { ctx ->
-                videoPlayerApi.getPlayerView() as View
+                videoPlayerApi.getPlayerView()
             },
             modifier = Modifier.weight(1f) // Takes up available space
         )
