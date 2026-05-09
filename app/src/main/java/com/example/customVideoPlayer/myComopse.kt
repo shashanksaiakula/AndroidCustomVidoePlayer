@@ -20,24 +20,31 @@ fun myComopse(modifier: Modifier = Modifier) {
 
     // ✅ Use remember so it doesn't re-init on every UI change
     val videoPlayerApi = remember { VideoPlayerApi.initialize(context) }
-    val uri = Uri.parse("")
+    val uri = Uri.parse("content://media/external/video/media/1000000515")
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 1. Use AndroidView to display the PlayerView
+//        // 1. Use AndroidView to display the PlayerView
+//        AndroidView(
+//            factory = { ctx ->
+//                videoPlayerApi.getPlayerView()
+//            },
+//            modifier = Modifier.weight(1f) // Takes up available space
+//        )
+//
+//        // 2. Use LaunchedEffect so 'prepare' only runs ONCE
+//        LaunchedEffect(uri) {
+//            videoPlayerApi.prepare(
+//                uri = uri,
+//                mimeType = "video/mp4"
+//            )
+//        }
         AndroidView(
             factory = { ctx ->
-                videoPlayerApi.getPlayerView()
+                // Use the Utility to get the View
+                videoPlayerApi.getFullPlayerView(uri)
             },
-            modifier = Modifier.weight(1f) // Takes up available space
+            modifier = modifier
         )
-
-        // 2. Use LaunchedEffect so 'prepare' only runs ONCE
-        LaunchedEffect(uri) {
-            videoPlayerApi.prepare(
-                uri = uri,
-                mimeType = "video/mp4"
-            )
-        }
     }
 }
 

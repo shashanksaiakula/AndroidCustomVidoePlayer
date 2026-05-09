@@ -1,8 +1,11 @@
 package com.example.video_player_lib.utils
 
 import android.content.Context
+import android.net.Uri
 import android.view.View
 import androidx.annotation.OptIn
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -12,6 +15,8 @@ import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.RenderersFactory
 import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.ui.PlayerView
+import com.example.video_player_lib.api.view.CustomVideoPlayer
+import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 
 @OptIn(UnstableApi::class)
 object ExoPlayerUtils {
@@ -47,5 +52,17 @@ object ExoPlayerUtils {
             useController = false
         }
 
+    }
+    fun getFullPlayerView(context: Context, viewModel: VideoPlayerViewModel, uri: Uri?) : View {
+        return ComposeView(context).apply {
+            // This ensures the composition is disposed of when the view is removed from the screen
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+
+            setContent {
+                uri?.let {
+                    CustomVideoPlayer(uri = it, viewModel =viewModel, showOverLayUI = false)
+                }
+            }
+        }
     }
 }
