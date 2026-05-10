@@ -3,31 +3,40 @@ package com.example.video_player_lib
 import android.content.Context
 import android.net.Uri
 import android.view.View
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 import com.example.video_player_lib.utils.ExoPlayerUtils
-import dagger.hilt.android.UnstableApi
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-object VideoPlayerApi {
-    private var exoPlayer: ExoPlayer? = null
-    private var context: Context? = null
-    private var viewModel: VideoPlayerViewModel? = null
+class VideoPlayerApi(private val context: Context) {
+    private var exoPlayer: ExoPlayer? = ExoPlayerUtils.createExoPlayer(context)
+    private var viewModel: VideoPlayerViewModel? = VideoPlayerViewModel(exoPlayer!!)
+    private var listener: VideoPlayerListener? = null
 
-    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-    // Prepare player with URI (like preparePlayer in ViewModel)
-            /**
-             * Initializes the video player with the given context.
-             * @param context The application context.
-            //             */
-    fun initialize(context: Context): VideoPlayerApi {
-        if (exoPlayer == null) {
-            this.context = context
-            // i want to use for mapp module
-            exoPlayer = ExoPlayerUtils.createExoPlayer(context)
-            viewModel = VideoPlayerViewModel(exoPlayer!!)
+    private val playerListener = object : Player.Listener {
+        override fun onPlaybackStateChanged(state: Int) {
+            listener?.onPlaybackStateChanged(state)
         }
-        return this
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            listener?.onIsPlayingChanged(isPlaying)
+        }
+
+        override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+            listener?.onPlayerError(error.message ?: "Unknown Error")
+        }
+    }
+
+    init {
+        exoPlayer?.addListener(playerListener)
+    }
+
+    companion object {
+        // Keep for backward compatibility with existing code
+        fun initialize(context: Context): VideoPlayerApi {
+            return VideoPlayerApi(context)
+        }
     }
 
     fun setLongPressSpeed(speed: Float) {
@@ -43,37 +52,39 @@ object VideoPlayerApi {
     }
 
     fun setListener(listener: VideoPlayerListener) {
-        fun onPlaybackStateChanged(state: Int): String {
-            return when (state) {
-                ExoPlayer.STATE_IDLE -> "IDLE"
-                ExoPlayer.STATE_BUFFERING -> "BUFFERING"
-                ExoPlayer.STATE_READY -> "READY"
-                ExoPlayer.STATE_ENDED -> "ENDED"
-                else -> "UNKNOWN"
-            }
-        }
+        this.listener = listener
+    }
 
-        fun onIsPlayingChanged(isPlaying: Boolean): String {
-            return if (isPlaying) "PLAYING" else "PAUSED"
-        }
+    fun prepare(uri: Uri) {
+        viewModel?.preparePlayer(uri)
+    }
 
-        fun onPlayerError(error: String): String {
-            return "ERROR: $error"
-        }
+    fun play() {
+        viewModel?.play()
+    }
+
+    fun pause() {
+        viewModel?.pause()
+    }
+
+    fun stop() {
+        viewModel?.stop()
     }
 
     fun onClose() {
+        exoPlayer?.removeListener(playerListener)
         viewModel?.onClose()
+        exoPlayer = null
+        viewModel = null
     }
 
-    fun getFullPlayerView(uri: Uri,showOverLayUI : Boolean): View {
-        return ExoPlayerUtils.getFullPlayerView(context!!, viewModel!!, uri,showOverLayUI)
+    fun getFullPlayerView(uri: Uri, showOverLayUI: Boolean): View {
+        return ExoPlayerUtils.getFullPlayerView(context, viewModel!!, uri, showOverLayUI)
     }
 }
 
-
 interface VideoPlayerListener {
-    fun onPlaybackStateChanged(state: Int) // IDLE, BUFFERING, READY, ENDED
+    fun onPlaybackStateChanged(state: Int)
     fun onIsPlayingChanged(isPlaying: Boolean)
     fun onPlayerError(error: String)
 }

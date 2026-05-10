@@ -80,7 +80,7 @@ fun CustomVideoPlayer(
     }
 
     LaunchedEffect(uri) {
-        viewModel.praperPlayer(uri, null)
+        viewModel.preparePlayer(uri, null)
     }
 
     LaunchedEffect(isForwardVisible) {

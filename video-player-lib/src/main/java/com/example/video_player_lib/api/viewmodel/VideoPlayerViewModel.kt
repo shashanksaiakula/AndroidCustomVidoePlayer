@@ -81,7 +81,7 @@ class VideoPlayerViewModel @Inject constructor(
         exoPlayer.seekTo(exoPlayer.currentPosition - seek)
     }
 
-    fun praperPlayer(uri: Uri, mimeType: String? = null) {
+    fun preparePlayer(uri: Uri, mimeType: String? = null) {
         val mediaItem = MediaItem.Builder()
             .setUri(uri)
             .apply { if (mimeType != null) setMimeType(mimeType) }
@@ -131,5 +131,17 @@ class VideoPlayerViewModel @Inject constructor(
 
     fun onClose(){
         exoPlayer.release()
+    }
+
+    fun stop() {
+        exoPlayer.stop()
+    }
+
+    fun pause() {
+        exoPlayer.pause()
+    }
+
+    fun play() {
+        exoPlayer.play()
     }
 }
