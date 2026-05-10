@@ -41,7 +41,7 @@ fun myComopse(modifier: Modifier = Modifier) {
         AndroidView(
             factory = { ctx ->
                 // Use the Utility to get the View
-                videoPlayerApi.getFullPlayerView(uri)
+                videoPlayerApi.getFullPlayerView(uri, showOverLayUI = true)
             },
             modifier = modifier
         )

@@ -53,14 +53,14 @@ object ExoPlayerUtils {
         }
 
     }
-    fun getFullPlayerView(context: Context, viewModel: VideoPlayerViewModel, uri: Uri?) : View {
+    fun getFullPlayerView(context: Context, viewModel: VideoPlayerViewModel, uri: Uri?,showOverLayUI: Boolean) : View {
         return ComposeView(context).apply {
             // This ensures the composition is disposed of when the view is removed from the screen
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
             setContent {
                 uri?.let {
-                    CustomVideoPlayer(uri = it, viewModel =viewModel, showOverLayUI = false)
+                    CustomVideoPlayer(uri = it, viewModel =viewModel, showOverLayUI = showOverLayUI)
                 }
             }
         }

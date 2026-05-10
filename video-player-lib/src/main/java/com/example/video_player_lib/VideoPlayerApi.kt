@@ -13,7 +13,6 @@ object VideoPlayerApi {
     private var exoPlayer: ExoPlayer? = null
     private var context: Context? = null
     private var viewModel: VideoPlayerViewModel? = null
-    private var uri: Uri? = null
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     // Prepare player with URI (like preparePlayer in ViewModel)
@@ -63,9 +62,12 @@ object VideoPlayerApi {
         }
     }
 
+    fun onClose() {
+        viewModel?.onClose()
+    }
 
-    fun getFullPlayerView(uri: Uri): View {
-        return ExoPlayerUtils.getFullPlayerView(context!!, viewModel!!, uri)
+    fun getFullPlayerView(uri: Uri,showOverLayUI : Boolean): View {
+        return ExoPlayerUtils.getFullPlayerView(context!!, viewModel!!, uri,showOverLayUI)
     }
 }
 

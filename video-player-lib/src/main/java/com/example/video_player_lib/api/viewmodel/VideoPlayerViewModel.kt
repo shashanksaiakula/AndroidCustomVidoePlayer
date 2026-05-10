@@ -129,4 +129,7 @@ class VideoPlayerViewModel @Inject constructor(
         _doubleTapSeek.value = seek
     }
 
+    fun onClose(){
+        exoPlayer.release()
+    }
 }
