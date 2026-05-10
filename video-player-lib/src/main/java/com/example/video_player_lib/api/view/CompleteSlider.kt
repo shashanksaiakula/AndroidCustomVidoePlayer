@@ -1,6 +1,8 @@
 package com.example.video_player_lib.api.view
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,12 +43,12 @@ fun CompleteSlider(
 
     val isFullScreen = viewModel.isFullScreen.collectAsState().value
     val resizeMode = viewModel.resize.collectAsState().value
-    val content = LocalContext.current
+    val context = LocalContext.current
     val currentPosition = viewModel.currentPosition.collectAsState().value
     val duration by viewModel.duration.collectAsState()
 
     LaunchedEffect(isFullScreen) {
-        val activity = content as? Activity
+        val activity = context.findActivity()
         val window = activity?.window
         if (window != null) {
             val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -62,15 +64,15 @@ fun CompleteSlider(
     }
 
     Column(
-        modifier = modifier // Apply the external modifier only here
+        modifier = modifier
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(), // Use fresh Modifier
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom
         ) {
             DurationText(
-                modifier = Modifier.padding(horizontal = 16.dp), // Use fresh Modifier
+                modifier = Modifier.padding(horizontal = 16.dp),
                 currentDuration = currentPosition,
                 totalDuration = duration
             )
@@ -127,7 +129,13 @@ fun CompleteSlider(
         }
         CustomSlider(
             viewModel = viewModel,
-            modifier = Modifier.fillMaxWidth() // Use fresh Modifier
+            modifier = Modifier.fillMaxWidth()
         )
     }
+}
+
+private fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
