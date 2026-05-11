@@ -91,7 +91,15 @@ dependencies {
 
     implementation(libs.androidx.compose.material.icons.extended)
 
-    // load image
+    // Vosk
+    implementation("com.alphacephei:vosk-android:0.3.47")
+    // ViewModel for Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // Load image
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil-video:2.7.0")
 }

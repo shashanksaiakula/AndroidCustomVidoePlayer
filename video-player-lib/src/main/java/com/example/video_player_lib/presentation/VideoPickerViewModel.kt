@@ -8,6 +8,8 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.video_player_lib.domin.model.LocalVideo
 import com.example.video_player_lib.domin.repository.VideoRepository
+import com.example.video_player_lib.presentation.transcript.TranscriptItem
+import com.example.video_player_lib.presentation.transcript.TranscriptManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -20,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class VideoPickerViewModel @Inject constructor(
     private val repository: VideoRepository,
-    val exoPlayer: ExoPlayer
+    val exoPlayer: ExoPlayer,
+    private val transcriptManager: TranscriptManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VideoPickerUiState())
@@ -51,6 +54,18 @@ class VideoPickerViewModel @Inject constructor(
     val listOfNotes = _listOfNotes.asStateFlow()
     private var timerJob: Job? = null
 
+    private val _transcriptItems = MutableStateFlow<List<TranscriptItem>>(emptyList())
+    val transcriptItems = _transcriptItems.asStateFlow()
+
+    private val _isTranscribing = MutableStateFlow(false)
+    val isTranscribing = _isTranscribing.asStateFlow()
+
+    private val _transcriptProgress = MutableStateFlow(0)
+    val transcriptProgress = _transcriptProgress.asStateFlow()
+
+    private val _transcriptError = MutableStateFlow<String?>(null)
+    val transcriptError = _transcriptError.asStateFlow()
+
     init {
         exoPlayer.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -68,6 +83,20 @@ class VideoPickerViewModel @Inject constructor(
                 }
             }
         })
+
+        // Collect transcript manager states
+        viewModelScope.launch {
+            transcriptManager.transcriptItems.collect { _transcriptItems.value = it }
+        }
+        viewModelScope.launch {
+            transcriptManager.isTranscribing.collect { _isTranscribing.value = it }
+        }
+        viewModelScope.launch {
+            transcriptManager.progress.collect { _transcriptProgress.value = it }
+        }
+        viewModelScope.launch {
+            transcriptManager.error.collect { _transcriptError.value = it }
+        }
     }
 
     private fun startTimer() {
@@ -96,7 +125,7 @@ class VideoPickerViewModel @Inject constructor(
         }
     }
 
-    fun retunVideoLsitStatus() : VideoPickerUiState{
+    fun retunVideoLsitStatus(): VideoPickerUiState {
         loadVideos()
         return uiState.value
     }
@@ -147,7 +176,8 @@ class VideoPickerViewModel @Inject constructor(
     fun onLongPress() {
         setPlaybackSpeed(2f)
     }
-    fun onLongPress(palyBackFast : Float){
+
+    fun onLongPress(palyBackFast: Float) {
         setPlaybackSpeed(palyBackFast)
     }
 
@@ -157,6 +187,7 @@ class VideoPickerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        transcriptManager.release()
         exoPlayer.release()
     }
 
@@ -220,10 +251,30 @@ class VideoPickerViewModel @Inject constructor(
         }
     }
 
-}
+    fun startTranscription(uri: Uri) {
+        viewModelScope.launch {
+            transcriptManager.transcribeVideoFile(uri)
+        }
+    }
 
-data class VideoPickerUiState(
-    val videos: List<LocalVideo> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null
-)
+    fun startTranscription(uriPath: String) {
+        viewModelScope.launch {
+            val uri = if (uriPath.startsWith("content://")) {
+                Uri.parse(uriPath)
+            } else {
+                Uri.parse("file://$uriPath")
+            }
+            transcriptManager.transcribeVideoFile(uri)
+        }
+    }
+
+    fun clearTranscript() {
+        transcriptManager.clearTranscript()
+    }
+
+    data class VideoPickerUiState(
+        val videos: List<LocalVideo> = emptyList(),
+        val isLoading: Boolean = false,
+        val error: String? = null
+    )
+}

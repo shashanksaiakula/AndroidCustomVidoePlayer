@@ -16,6 +16,13 @@ fun formatTime(milliseconds: Long): String {
     }
 }
 
+fun formatTime(seconds: Double): String {
+    val mins = (seconds / 60).toInt()
+    val secs = (seconds % 60).toInt()
+    val millis = ((seconds % 1) * 100).toInt()
+    return String.format("%02d:%02d.%02d", mins, secs, millis)
+}
+
 fun timeStampToLong(timeStamp: String): Long {
     return try {
         // Split by colon OR dot to be safe

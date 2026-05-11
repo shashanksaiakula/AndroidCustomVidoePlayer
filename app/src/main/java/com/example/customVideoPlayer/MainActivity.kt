@@ -13,6 +13,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.example.video_player_lib.presentation.components.App
 import com.example.customVideoPlayer.ui.theme.MyApplicationTheme
+import com.example.video_player_lib.presentation.transcript.VideoTranscriptScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -27,8 +28,9 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme {
                 Scaffold(modifier = Modifier.fillMaxSize(),
                 ) { innerPadding ->
-                    myComopse(modifier = Modifier.padding(innerPadding))
+//                    myComopse(modifier = Modifier.padding(innerPadding))
 //                    App(modifier = Modifier.padding(innerPadding))
+                    VideoTranscriptScreen()
                 }
             }
         }

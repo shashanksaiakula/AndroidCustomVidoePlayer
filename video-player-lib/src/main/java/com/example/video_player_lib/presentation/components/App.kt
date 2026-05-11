@@ -10,13 +10,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -41,6 +44,7 @@ import androidx.compose.ui.text.input.ImeAction
 import com.example.video_player_lib.domin.model.LocalVideo
 import com.example.video_player_lib.presentation.MediaLibraryScreen
 import com.example.video_player_lib.presentation.VideoPickerViewModel
+import com.example.video_player_lib.presentation.transcript.TranscriptItem
 import com.example.video_player_lib.utils.formatTime
 import com.example.video_player_lib.utils.timeStampToLong
 
@@ -117,6 +121,22 @@ fun App(modifier: Modifier = Modifier) {
                                 }
                                 .background(
                                     color = if (viewModel.tabSelected.collectAsState().value == "list") MaterialTheme.colorScheme.secondary.copy(
+                                        alpha = .2f
+                                    ) else MaterialTheme.colorScheme.secondary.copy(alpha = .0f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            "Transcript",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    viewModel.selectTab("transcript")
+                                }
+                                .background(
+                                    color = if (viewModel.tabSelected.collectAsState().value == "transcript") MaterialTheme.colorScheme.secondary.copy(
                                         alpha = .2f
                                     ) else MaterialTheme.colorScheme.secondary.copy(alpha = .0f),
                                     shape = RoundedCornerShape(8.dp)
@@ -233,6 +253,49 @@ fun App(modifier: Modifier = Modifier) {
                                     }
                                 )
                             )
+                        }
+                    }
+                    if (viewModel.tabSelected.collectAsState().value == "transcript") {
+                        val transcriptItems by viewModel.transcriptItems.collectAsState()
+                        val isTranscribing by viewModel.isTranscribing.collectAsState()
+                        val progress by viewModel.transcriptProgress.collectAsState()
+                        val error by viewModel.transcriptError.collectAsState()
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                        ) {
+                            TranscriptBox(
+                                transcriptItems = transcriptItems,
+                                isTranscribing = isTranscribing,
+                                progress = progress,
+                                error = error,
+                                onStartTranscription = {
+                                    viewModel.startTranscription(selectedVideo!!.uri)
+                                },
+                                onSeekToTime = { timeMs ->
+                                    viewModel.exoPlayer.seekTo(timeMs)
+                                }
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Save transcript to notes button
+                            if (transcriptItems.isNotEmpty()) {
+                                Button(
+                                    onClick = {
+                                        val transcriptText = transcriptItems.joinToString("\n") {
+                                            "${it.formatTime()} - ${it.text}"
+                                        }
+                                        viewModel.addNote(transcriptText, selectedVideo!!.id)
+                                        viewModel.clearTranscript()
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Save Transcript to Notes")
+                                }
+                            }
                         }
                     }
                 }
