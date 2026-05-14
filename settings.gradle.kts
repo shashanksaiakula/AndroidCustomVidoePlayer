@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "My Application"
 include(":app")
 include(":video-player-lib")
+include(":transcript-engine")

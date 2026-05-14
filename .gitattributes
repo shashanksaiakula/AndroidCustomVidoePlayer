@@ -1,0 +1,2 @@
+app/assets/models/*.bin filter=lfs diff=lfs merge=lfs -text
+transcript-engine/src/main/assets/models/*.bin filter=lfs diff=lfs merge=lfs -text
