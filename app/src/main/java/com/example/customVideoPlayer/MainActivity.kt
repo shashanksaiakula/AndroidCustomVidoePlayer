@@ -27,8 +27,8 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme {
                 Scaffold(modifier = Modifier.fillMaxSize(),
                 ) { innerPadding ->
-                    myComopse(modifier = Modifier.padding(innerPadding))
-//                    App(modifier = Modifier.padding(innerPadding))
+//                    myComopse(modifier = Modifier.padding(innerPadding))
+                    App(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
