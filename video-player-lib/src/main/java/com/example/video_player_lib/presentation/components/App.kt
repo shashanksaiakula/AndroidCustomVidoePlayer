@@ -60,13 +60,13 @@ fun App(modifier: Modifier = Modifier) {
     val focusManager = LocalFocusManager.current
     var timeStamp by remember { mutableStateOf(0L) }
     var addNote by remember { mutableStateOf("") }
-    val notesList = viewModel.listOfNotes.collectAsState().value
     val context = LocalContext.current
     val videplayViewModel : VideoPlayerViewModel = remember {
         VideoPlayerViewModel(viewModel.exoPlayer, context)
     }
     val isFullScreenEnabled = videplayViewModel.isFullScreen.collectAsState().value
-
+    val notesList = videplayViewModel.listOfNotes.collectAsState().value
+    val id = videplayViewModel.id.collectAsState().value
 
     LaunchedEffect(viewModel.isPressed) {
         viewModel.isPressed.collect {
@@ -171,11 +171,16 @@ fun App(modifier: Modifier = Modifier) {
                                                             RoundedCornerShape(4.dp)
                                                         )
                                                         .clickable {
-                                                            viewModel.exoPlayer.seekTo(
+                                                            videplayViewModel.seekTo(
                                                                 timeStampToLong(
                                                                     note.substringBefore("-").trim()
                                                                 )
                                                             )
+//                                                            videplayViewModel.exoPlayer.seekTo(
+//                                                                timeStampToLong(
+//                                                                    note.substringBefore("-").trim()
+//                                                                )
+//                                                            )
                                                         }
                                                         .padding(10.dp), // Inner padding for the Row
                                                     horizontalArrangement = Arrangement.Start, // Changed to Start so the box is next to the text
@@ -232,17 +237,17 @@ fun App(modifier: Modifier = Modifier) {
                                     .padding(horizontal = 16.dp, vertical = 8.dp)
                                     .onFocusChanged { focusState ->
                                         if (focusState.isFocused) {
-                                            timeStamp = viewModel.pauseVideo()
+                                            timeStamp = videplayViewModel.pauseVideo()
                                         }
                                     },
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                                 keyboardActions = KeyboardActions(
                                     onDone = {
-                                        viewModel.resumeVideo()
+                                        videplayViewModel.play()
                                         focusManager.clearFocus()
-                                        viewModel.addNote(
+                                        videplayViewModel.addNote(
                                             note = "${formatTime(timeStamp)} - ${addNote}",
-                                            id = selectedVideo!!.id
+                                            id = id
                                         )
                                         timeStamp = 0L
                                         addNote = ""

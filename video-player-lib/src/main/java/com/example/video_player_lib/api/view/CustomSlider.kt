@@ -35,8 +35,8 @@ fun CustomSlider(modifier: Modifier = Modifier,
                  currentDuration: Long = 0L, totalDuration: Long = 0L,
                  onValueChage : (value: Float) -> Unit ={},
                  onValueChangeFinished: () -> Unit = {},
-                 id: String = "",                   // Current video ID to filter matching notes
-                 noteList: Map<String, List<String>> = emptyMap(), // Map containing timestamp note strings
+                 id: Long = 0L,                   // Current video ID to filter matching notes
+                 noteList: Map<Long, List<String>> = emptyMap(), // Map containing timestamp note strings
 ) {
 
     var localSliderValue by remember { mutableFloatStateOf(currentDuration.toFloat()) }

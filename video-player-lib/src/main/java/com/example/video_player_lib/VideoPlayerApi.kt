@@ -77,6 +77,16 @@ class VideoPlayerApi(private val context: Context) {
         exoPlayer = null
         viewModel = null
     }
+    fun getId(): Long {
+        return viewModel!!.id.value
+    }
+    fun getExoplayer(): ExoPlayer {
+        return viewModel!!.exoPlayer
+    }
+
+    fun addNote(note: String, id: Long) {
+        viewModel!!.addNote(note, id)
+    }
 
     fun getFullPlayerView(uri: Uri, showOverLayUI: Boolean): View {
         return ExoPlayerUtils.getFullPlayerView(context, viewModel!!, uri, showOverLayUI)

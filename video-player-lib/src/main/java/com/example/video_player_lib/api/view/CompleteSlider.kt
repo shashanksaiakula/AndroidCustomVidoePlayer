@@ -157,7 +157,9 @@ fun CompleteSlider(
             totalDuration = duration,
             onValueChage = {
                 viewModel.seekTo(it.toLong())
-            }
+            },
+            id = viewModel.id.collectAsState().value,
+            noteList = viewModel.listOfNotes.collectAsState().value
         )
     }
 }

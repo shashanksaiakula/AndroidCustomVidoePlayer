@@ -19,6 +19,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.roundToInt
@@ -56,6 +57,13 @@ class VideoPlayerViewModel @Inject constructor(
     private val VOLUME_CHANGED_ACTION = "android.media.VOLUME_CHANGED_ACTION"
     private val EXTRA_VOLUME_STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE"
     private val EXTRA_VOLUME_STREAM_VALUE = "android.media.EXTRA_VOLUME_STREAM_VALUE"
+    private val _listOfNotes = MutableStateFlow<Map<Long, List<String>>>(emptyMap())
+    val listOfNotes = _listOfNotes.asStateFlow()
+
+//    private val _id = MutableStateFlow<MutableList<Long>>(mutableListOf())
+    private val _id = MutableStateFlow(0L)
+    val id = _id.asStateFlow()
+
 
     // register receiver
     private val volumeReceiver = object : BroadcastReceiver() {
@@ -85,7 +93,6 @@ class VideoPlayerViewModel @Inject constructor(
             _mute.value = (current == 0)
         }
         context.registerReceiver(volumeReceiver, IntentFilter(VOLUME_CHANGED_ACTION))
-        Log.e("check", ": volume is ${_valume.value}")
         exoPlayer.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
@@ -219,6 +226,12 @@ class VideoPlayerViewModel @Inject constructor(
         _showVolume.value = valume
     }
 
+    fun getIdFromUri(uri: Uri) {
+//        id.value.add(uri.lastPathSegment?.substringAfterLast("media/")?.toLongOrNull() ?: 0L)
+        _id.value = uri.lastPathSegment?.substringAfterLast("media/")?.toLongOrNull() ?: 0L
+        Log.e("check", "getIdFromUri: ${_id.value}")
+    }
+
     fun playNext(){
         if (exoPlayer.hasNextMediaItem()) {
             exoPlayer.seekToNextMediaItem() // Modern ExoPlayer alternative to seekToNext()
@@ -259,6 +272,20 @@ class VideoPlayerViewModel @Inject constructor(
         }
     }
 
+    fun pauseVideo(): Long {
+        exoPlayer.pause()
+        return exoPlayer.currentPosition
+    }
+
+    fun addNote(note: String, id: Long) {
+        Log.e("check", "addNote: $note, ID: $id")
+        _listOfNotes.update { currentState ->
+            currentState.toMutableMap().apply {
+                val notes = getOrDefault(id, emptyList()) + note
+                put(id, notes)
+            }
+        }
+    }
     // in onCleared()
     override fun onCleared() {
         super.onCleared()

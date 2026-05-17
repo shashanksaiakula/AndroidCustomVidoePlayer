@@ -106,6 +106,7 @@ fun CustomVideoPlayer(
 
     LaunchedEffect(uri) {
         viewModel.preparePlayer(uri, null)
+        viewModel.getIdFromUri(uri)
     }
 
     LaunchedEffect(isForwardVisible) {
