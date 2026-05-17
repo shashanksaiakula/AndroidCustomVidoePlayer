@@ -56,7 +56,7 @@ fun myComopse(modifier: Modifier = Modifier) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize()) {
         Button(onClick = {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 // Photo Picker doesn't strictly need permissions on T+, but we can launch it directly

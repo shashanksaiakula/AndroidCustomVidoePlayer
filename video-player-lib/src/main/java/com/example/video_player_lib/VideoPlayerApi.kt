@@ -11,7 +11,7 @@ import com.example.video_player_lib.utils.ExoPlayerUtils
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class VideoPlayerApi(private val context: Context) {
     private var exoPlayer: ExoPlayer? = ExoPlayerUtils.createExoPlayer(context)
-    private var viewModel: VideoPlayerViewModel? = VideoPlayerViewModel(exoPlayer!!)
+    private var viewModel: VideoPlayerViewModel? = VideoPlayerViewModel(exoPlayer!!,context)
     private var listener: VideoPlayerListener? = null
 
     private val playerListener = object : Player.Listener {
