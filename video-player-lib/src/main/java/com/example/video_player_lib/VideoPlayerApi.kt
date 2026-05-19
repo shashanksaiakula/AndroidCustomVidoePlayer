@@ -87,7 +87,9 @@ class VideoPlayerApi(private val context: Context) {
     fun addNote(note: String, id: Long) {
         viewModel!!.addNote(note, id)
     }
-
+    fun getNotesList() : Map<Long, List<String>> {
+        return viewModel!!.listOfNotes.value
+    }
     fun getFullPlayerView(uri: Uri, showOverLayUI: Boolean): View {
         return ExoPlayerUtils.getFullPlayerView(context, viewModel!!, uri, showOverLayUI)
     }
