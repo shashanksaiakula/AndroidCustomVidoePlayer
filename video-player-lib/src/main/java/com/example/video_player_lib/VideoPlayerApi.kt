@@ -63,9 +63,13 @@ class VideoPlayerApi(private val context: Context) {
         this.listener = listener
     }
 
+    fun fastFarwordSpeed(speed: Float) {
+        viewModel?.setFastPlaySpreed(speed)
+    }
+
     fun prepare(uri: Uri) {
-        viewModel!!.getIdFromUri(uri)
         viewModel?.preparePlayer(uri)
+        viewModel!!.getIdFromUri(uri)
     }
 
     fun play() {
@@ -104,6 +108,7 @@ class VideoPlayerApi(private val context: Context) {
     }
 
     fun getFullPlayerView(uri: Uri, showOverLayUI: Boolean): View {
+        viewModel!!.getIdFromUri(uri)
         return ExoPlayerUtils.getFullPlayerView(context, viewModel!!, uri, showOverLayUI)
     }
 }
