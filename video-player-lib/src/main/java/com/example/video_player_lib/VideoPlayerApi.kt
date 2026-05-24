@@ -47,6 +47,10 @@ class VideoPlayerApi(private val context: Context) {
         viewModel?.seekByReverse(seek)
     }
 
+    fun setLongPressSpeed(speed: Float) {
+        viewModel?.onLongPress(speed)
+    }
+
     fun seekTo(position: Long) {
         viewModel?.seekTo(position)
     }
@@ -60,6 +64,7 @@ class VideoPlayerApi(private val context: Context) {
     }
 
     fun prepare(uri: Uri) {
+        viewModel!!.getIdFromUri(uri)
         viewModel?.preparePlayer(uri)
     }
 
@@ -99,7 +104,6 @@ class VideoPlayerApi(private val context: Context) {
     }
 
     fun getFullPlayerView(uri: Uri, showOverLayUI: Boolean): View {
-        viewModel!!.getIdFromUri(uri)
         return ExoPlayerUtils.getFullPlayerView(context, viewModel!!, uri, showOverLayUI)
     }
 }
