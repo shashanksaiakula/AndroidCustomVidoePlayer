@@ -106,6 +106,13 @@ class VideoPlayerApi(private val context: Context) {
     fun getNotesList(): Map<Long, List<String>> {
         return viewModel!!.listOfNotes.value
     }
+    fun getTimeStamp() : String {
+        return viewModel!!.getTileStamp()
+    }
+
+    fun isFullScreen() : Boolean {
+        return viewModel!!.isFullScreen.value
+    }
 
     fun getFullPlayerView(uri: Uri, showOverLayUI: Boolean): View {
         viewModel!!.getIdFromUri(uri)

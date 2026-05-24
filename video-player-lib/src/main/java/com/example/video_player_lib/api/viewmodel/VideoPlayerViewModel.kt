@@ -14,6 +14,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
+import com.example.video_player_lib.utils.formatTime
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -177,6 +178,11 @@ class VideoPlayerViewModel @Inject constructor(
 
     fun setFastPlaySpreed(speed: Float) {
         _FastPlaybackSpeed.value = speed
+    }
+
+    fun getTileStamp(): String {
+        exoPlayer.pause()
+        return formatTime(exoPlayer.currentPosition)
     }
 
     fun setDoubleTapSeek(seek: Long) {
