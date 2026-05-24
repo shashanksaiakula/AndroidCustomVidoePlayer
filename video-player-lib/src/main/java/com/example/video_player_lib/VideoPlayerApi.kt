@@ -39,12 +39,16 @@ class VideoPlayerApi(private val context: Context) {
         }
     }
 
-    fun setLongPressSpeed(speed: Float) {
-        viewModel?.onLongPress(speed)
+    fun skipForword(seek: Long) {
+        viewModel?.seekByForward(seek)
     }
 
-    fun setDoubleTapSeek(seek: Long) {
-        viewModel?.setDoubleTapSeek(seek)
+    fun skipBackword(seek: Long) {
+        viewModel?.seekByReverse(seek)
+    }
+
+    fun seekTo(position: Long) {
+        viewModel?.seekTo(position)
     }
 
     fun setFastPlaybackSpeed(speed: Float) {
@@ -77,9 +81,11 @@ class VideoPlayerApi(private val context: Context) {
         exoPlayer = null
         viewModel = null
     }
+
     fun getId(): Long {
         return viewModel!!.id.value
     }
+
     fun getExoplayer(): ExoPlayer {
         return viewModel!!.exoPlayer
     }
@@ -87,10 +93,13 @@ class VideoPlayerApi(private val context: Context) {
     fun addNote(note: String, id: Long) {
         viewModel!!.addNote(note, id)
     }
-    fun getNotesList() : Map<Long, List<String>> {
+
+    fun getNotesList(): Map<Long, List<String>> {
         return viewModel!!.listOfNotes.value
     }
+
     fun getFullPlayerView(uri: Uri, showOverLayUI: Boolean): View {
+        viewModel!!.getIdFromUri(uri)
         return ExoPlayerUtils.getFullPlayerView(context, viewModel!!, uri, showOverLayUI)
     }
 }
