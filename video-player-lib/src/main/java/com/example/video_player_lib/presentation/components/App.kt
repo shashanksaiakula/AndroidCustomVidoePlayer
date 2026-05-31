@@ -1,14 +1,20 @@
 package com.example.video_player_lib.presentation.components
 
 import android.annotation.SuppressLint
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Build
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,10 +24,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -42,13 +48,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.toUpperCase
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.util.UnstableApi
 import com.example.transcript_engine.copyModelToStorage
 import com.example.video_player_lib.api.view.CustomVideoPlayer
+import com.example.video_player_lib.api.view.DefinitionDialog
 import com.example.video_player_lib.api.viewmodel.TranscriptViewModel
 import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 import com.example.video_player_lib.domin.model.LocalVideo
@@ -57,26 +69,38 @@ import com.example.video_player_lib.presentation.VideoPickerViewModel
 import com.example.video_player_lib.utils.extractStartSeconds
 import com.example.video_player_lib.utils.formatTime
 import com.example.video_player_lib.utils.timeStampToLong
+import java.util.Locale
 
 @SuppressLint("ViewModelConstructorInComposable")
-@OptIn(UnstableApi::class)
+@OptIn(ExperimentalFoundationApi::class)
+@UnstableApi
 @RequiresApi(Build.VERSION_CODES.R)
 @Composable
 fun App(modifier: Modifier = Modifier) {
     var selectedVideo by remember { mutableStateOf<LocalVideo?>(null) }
     val viewModel: VideoPickerViewModel = hiltViewModel()
-    val transcriptViewModel : TranscriptViewModel = hiltViewModel()
+    val transcriptViewModel: TranscriptViewModel = hiltViewModel()
     val focusManager = LocalFocusManager.current
     var timeStamp by remember { mutableStateOf(0L) }
     var addNote by remember { mutableStateOf("") }
     val context = LocalContext.current
-    val videplayViewModel : VideoPlayerViewModel = remember {
+    val videplayViewModel: VideoPlayerViewModel = remember {
         VideoPlayerViewModel(viewModel.exoPlayer, context)
     }
     val isFullScreenEnabled = videplayViewModel.isFullScreen.collectAsState().value
     val notesList = videplayViewModel.listOfNotes.collectAsState().value
     val id = videplayViewModel.id.collectAsState().value
     val transcript by transcriptViewModel.transcript.collectAsState()
+    val copiedText = remember { mutableStateOf("") }
+    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+
+    // activity life cycle
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    //speek
+    var tts: TextToSpeech? by remember { mutableStateOf(null) }
+    var isTtsReady by remember { mutableStateOf(false) }
+    val meaning by transcriptViewModel.selectedWordDefinition.collectAsState()
 
     LaunchedEffect(viewModel.isPressed) {
         viewModel.isPressed.collect {
@@ -85,8 +109,58 @@ fun App(modifier: Modifier = Modifier) {
     }
 
     LaunchedEffect(transcriptViewModel.isModelLoaded) {
-        transcriptViewModel.loadWhisperModel(context){ model ->
+        transcriptViewModel.loadWhisperModel(context) { model ->
             copyModelToStorage(model)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        clipboardManager.addPrimaryClipChangedListener {
+            val copied = clipboardManager.primaryClip?.getItemAt(0)?.text
+            println("Text copied to clipboard: $copied")
+            viewModel.exoPlayer.pause()
+            copiedText.value = copied.toString()
+        }
+    }
+
+    //speek
+    DisposableEffect(Unit) {
+        val ttsEngine = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                isTtsReady = true
+            }
+        }
+
+        // Set the language to English
+        ttsEngine.language = Locale.US
+        tts = ttsEngine
+
+        onDispose {
+            ttsEngine.stop()
+            ttsEngine.shutdown()
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    videplayViewModel.pause()
+                }
+
+                Lifecycle.Event.ON_DESTROY -> {
+                    videplayViewModel.stop()
+
+                }
+
+                else -> {}
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -170,6 +244,7 @@ fun App(modifier: Modifier = Modifier) {
             })
         } else {
             BackHandler {
+                videplayViewModel.pause()
                 selectedVideo = null
             }
             Column {
@@ -263,6 +338,7 @@ fun App(modifier: Modifier = Modifier) {
                                     .fillMaxWidth()
                                     .weight(1f)
                             ) {
+                                Log.e("noted added list", "App: ${notesList.entries.toString()}" )
                                 notesList.forEach { (id, notes) ->
                                     item {
                                         if (selectedVideo?.id == id) {
@@ -362,7 +438,7 @@ fun App(modifier: Modifier = Modifier) {
                             )
                         }
                     }
-                    if(viewModel.tabSelected.collectAsState().value == "transcript") {
+                    if (viewModel.tabSelected.collectAsState().value == "transcript") {
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -400,7 +476,11 @@ fun App(modifier: Modifier = Modifier) {
                                             shape = RoundedCornerShape(4.dp),      // This creates the "Curve"
                                         ) {
                                             Text(
-                                                text = "[${extractStartSeconds(key.substringBefore("s -> "))} -> ${extractStartSeconds(key.substringAfter("s -> "))}]",
+                                                text = "[${extractStartSeconds(key.substringBefore("s -> "))} -> ${
+                                                    extractStartSeconds(
+                                                        key.substringAfter("s -> ")
+                                                    )
+                                                }]",
                                                 color = Color.Black,
                                                 fontWeight = FontWeight.Bold,
                                                 modifier = Modifier.padding(
@@ -410,16 +490,35 @@ fun App(modifier: Modifier = Modifier) {
                                                 style = MaterialTheme.typography.bodyMedium
                                             )
                                         }
+                                        SelectionContainer {
                                             Text(
                                                 text = " $value",
                                                 color = Color.Black,
                                                 style = MaterialTheme.typography.bodyMedium,
-                                                modifier = Modifier.padding(start = 4.dp)
+                                                modifier = Modifier
+                                                    .padding(start = 4.dp)
+                                                    .pointerInput(key) {
+                                                        detectTapGestures(
+                                                            onLongPress = {
+                                                                videplayViewModel.seekTo(
+                                                                    timeStampToLong(
+                                                                        extractStartSeconds(
+                                                                            key.substringBefore(
+                                                                                "s -> "
+                                                                            )
+                                                                        )
+                                                                    )
+                                                                )
+                                                            }
+                                                        )
+                                                    }
                                             )
+                                        }
                                     }
                                 }
                             }
                         }
+
 //                    val scrollState = rememberScrollState()
 //                        Column(
 //                            modifier = Modifier
@@ -441,6 +540,31 @@ fun App(modifier: Modifier = Modifier) {
                     }
                 }
             }
+        }
+        if (copiedText.value.isNotEmpty()) {
+            transcriptViewModel.lookupWord(copiedText.value)
+            DefinitionDialog(
+                definition = copiedText.value,
+                meaning = meaning?.definition ?: "",
+                onDismiss = {
+                    copiedText.value = ""
+                    viewModel.exoPlayer.play()
+                },
+                onAddNoteClick = {
+                    val definition = "${copiedText.value.uppercase()} :-\n  ${meaning?.definition}"
+                    timeStamp = videplayViewModel.pauseVideo()
+                    videplayViewModel.addNote(
+                        note = "${formatTime(timeStamp)} - ${definition}",
+                        id = id
+                    )
+                    copiedText.value = ""
+                    viewModel.exoPlayer.play()
+
+                },
+                onSpeakClick = {
+                    tts?.speak(copiedText.value, TextToSpeech.QUEUE_FLUSH, null, null)
+                }
+            )
         }
     }
 }

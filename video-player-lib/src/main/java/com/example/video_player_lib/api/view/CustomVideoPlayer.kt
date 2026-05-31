@@ -110,6 +110,7 @@ fun CustomVideoPlayer(
 
     LaunchedEffect(uri) {
         viewModel.preparePlayer(uri, null)
+        viewModel.getIdFromUri(uri)
         // 1. Load model ONCE when screen launches
         transcriptViewModel.updateUri(uri)
     }

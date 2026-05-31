@@ -2,15 +2,16 @@ package com.example.video_player_lib.di
 
 import android.content.Context
 import androidx.annotation.OptIn
-import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.RenderersFactory
-import androidx.media3.exoplayer.SeekParameters
+import com.example.video_player_lib.domin.repository.DictionaryRepository
 import com.example.video_player_lib.domin.repository.VideoRepository
+import com.example.video_player_lib.networkcall.DictionaryApi
+import com.example.video_player_lib.repository.DictionaryRepositoryImpl
 import com.example.video_player_lib.repository.VideoRepositoryImpl
 import com.example.video_player_lib.utils.ExoPlayerUtils
 import dagger.Module
@@ -18,6 +19,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
@@ -63,5 +66,22 @@ object AppModule {
         loadControl: LoadControl
     ): ExoPlayer {
         return ExoPlayerUtils.createExoPlayerWithDeps(context, renderersFactory, loadControl)
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideDictionaryApi(): DictionaryApi {
+        return Retrofit.Builder()
+            .baseUrl("https://api.dictionaryapi.dev/api/v2/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(DictionaryApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDictionaryRepository(api: DictionaryApi): DictionaryRepository {
+        return DictionaryRepositoryImpl(api)
     }
 }

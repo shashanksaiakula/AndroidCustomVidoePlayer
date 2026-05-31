@@ -9,15 +9,22 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.transcript_engine.WhisperBridge
+import com.example.video_player_lib.domin.model.WordDefinition
+import com.example.video_player_lib.domin.repository.DictionaryRepository
 import com.example.video_player_lib.utils.AudioExtractor
 import com.example.video_player_lib.utils.UriUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class TranscriptViewModel : ViewModel() {
+@HiltViewModel
+class TranscriptViewModel @Inject constructor(
+    private val dictionaryRepository: DictionaryRepository // Injected via Hilt
+) : ViewModel() {
 
     // Instantiate WhisperBridge inside the ViewModel
     private val bridge = WhisperBridge()
@@ -31,6 +38,11 @@ class TranscriptViewModel : ViewModel() {
     var isModelLoaded by mutableStateOf(false)
         private set
 
+    private val _selectedWordDefinition = MutableStateFlow<WordDefinition?>(null)
+    val selectedWordDefinition = _selectedWordDefinition.asStateFlow()
+
+    var isDictionaryLoading by mutableStateOf(false)
+        private set
     /**
      * Call this inside a LaunchedEffect(Unit) in your Composable
      */
@@ -49,6 +61,19 @@ class TranscriptViewModel : ViewModel() {
                     Log.e("WHISPER_MODEL_ERROR", e.stackTraceToString())
                 }
             }
+        }
+    }
+
+    fun lookupWord(word: String) {
+        viewModelScope.launch {
+            isDictionaryLoading = true
+            val cleanWord = word.trim().replace(Regex("[^a-zA-Z]"), "")
+
+            dictionaryRepository.getDefinition(cleanWord)
+                .onSuccess { _selectedWordDefinition.value = it }
+                .onFailure { /* Handle error, e.g., show Toast */ }
+
+            isDictionaryLoading = false
         }
     }
 

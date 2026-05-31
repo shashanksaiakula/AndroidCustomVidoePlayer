@@ -3,17 +3,22 @@ package com.example.video_player_lib
 import android.content.Context
 import android.net.Uri
 import android.view.View
+import androidx.annotation.OptIn
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.video_player_lib.api.viewmodel.TranscriptViewModel
 import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 import com.example.video_player_lib.utils.ExoPlayerUtils
 
-@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+@OptIn(UnstableApi::class)
 class VideoPlayerApi(private val context: Context) {
     private var exoPlayer: ExoPlayer? = ExoPlayerUtils.createExoPlayer(context)
     private var viewModel: VideoPlayerViewModel? = VideoPlayerViewModel(exoPlayer!!,context)
-    private val transcriptViewModel = TranscriptViewModel()
+    private val transcriptViewModel = TranscriptViewModel(
+        dictionaryRepository = TODO()
+    )
     private var listener: VideoPlayerListener? = null
 
     private val playerListener = object : Player.Listener {
@@ -25,7 +30,7 @@ class VideoPlayerApi(private val context: Context) {
             listener?.onIsPlayingChanged(isPlaying)
         }
 
-        override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+        override fun onPlayerError(error: PlaybackException) {
             listener?.onPlayerError(error.message ?: "Unknown Error")
         }
     }
