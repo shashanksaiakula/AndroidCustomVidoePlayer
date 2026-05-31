@@ -11,7 +11,7 @@ import com.example.video_player_lib.utils.ExoPlayerUtils
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class VideoPlayerApi(private val context: Context) {
     private var exoPlayer: ExoPlayer? = ExoPlayerUtils.createExoPlayer(context)
-    private var viewModel: VideoPlayerViewModel? = VideoPlayerViewModel(exoPlayer!!)
+    private var viewModel: VideoPlayerViewModel? = VideoPlayerViewModel(exoPlayer!!,context)
     private var listener: VideoPlayerListener? = null
 
     private val playerListener = object : Player.Listener {
@@ -39,12 +39,20 @@ class VideoPlayerApi(private val context: Context) {
         }
     }
 
+    fun skipForword(seek: Long) {
+        viewModel?.seekByForward(seek)
+    }
+
+    fun skipBackword(seek: Long) {
+        viewModel?.seekByReverse(seek)
+    }
+
     fun setLongPressSpeed(speed: Float) {
         viewModel?.onLongPress(speed)
     }
 
-    fun setDoubleTapSeek(seek: Long) {
-        viewModel?.setDoubleTapSeek(seek)
+    fun seekTo(position: Long) {
+        viewModel?.seekTo(position)
     }
 
     fun setFastPlaybackSpeed(speed: Float) {
@@ -55,8 +63,13 @@ class VideoPlayerApi(private val context: Context) {
         this.listener = listener
     }
 
+    fun fastFarwordSpeed(speed: Float) {
+        viewModel?.setFastPlaySpreed(speed)
+    }
+
     fun prepare(uri: Uri) {
         viewModel?.preparePlayer(uri)
+        viewModel!!.getIdFromUri(uri)
     }
 
     fun play() {
@@ -78,7 +91,31 @@ class VideoPlayerApi(private val context: Context) {
         viewModel = null
     }
 
+    fun getId(): Long {
+        return viewModel!!.id.value
+    }
+
+    fun getExoplayer(): ExoPlayer {
+        return viewModel!!.exoPlayer
+    }
+
+    fun addNote(note: String, id: Long) {
+        viewModel!!.addNote(note, id)
+    }
+
+    fun getNotesList(): Map<Long, List<String>> {
+        return viewModel!!.listOfNotes.value
+    }
+    fun getTimeStamp() : String {
+        return viewModel!!.getTileStamp()
+    }
+
+    fun isFullScreen() : Boolean {
+        return viewModel!!.isFullScreen.value
+    }
+
     fun getFullPlayerView(uri: Uri, showOverLayUI: Boolean): View {
+        viewModel!!.getIdFromUri(uri)
         return ExoPlayerUtils.getFullPlayerView(context, viewModel!!, uri, showOverLayUI)
     }
 }

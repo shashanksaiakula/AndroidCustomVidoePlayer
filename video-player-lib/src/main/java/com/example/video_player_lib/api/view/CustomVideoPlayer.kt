@@ -1,19 +1,28 @@
 package com.example.video_player_lib.api.view
 
 import android.net.Uri
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Replay
@@ -28,8 +37,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -64,6 +76,19 @@ fun CustomVideoPlayer(
     var isRifgtDoubleTap by remember { mutableStateOf(false) }
     var controllVisibility by remember { mutableStateOf(true) }
     var isForwardVisible by remember { mutableStateOf(false) }
+    val showVolume by viewModel.showVolume.collectAsState()
+    var showValue by remember { mutableStateOf(false) }
+    var showBifgtness by remember { mutableStateOf(false) }
+    var isRightDrag by remember { mutableStateOf(false) }
+    var initialVolume by remember { mutableStateOf(0f) }
+    var initialBrightness by remember { mutableStateOf(0.5f) }
+    var currentDragVolume by remember { mutableStateOf(0f) }
+    var currentDragBrightness by remember { mutableStateOf(0.5f) }
+    var delaySliderVolume by remember { mutableStateOf(false) }
+    var delaySliderBrightness by remember { mutableStateOf(false) }
+    val volume by viewModel.valume.collectAsState()
+
+    val view = LocalView.current
 
     val playPauseState = when {
         isPlaying -> "Pause"
@@ -90,10 +115,20 @@ fun CustomVideoPlayer(
         }
     }
 
-    LaunchedEffect(isPlaying, controllVisibility) {
-        if (controllVisibility) {
+    LaunchedEffect(isPlaying, controllVisibility, showVolume) {
+        if (controllVisibility && !showVolume) {
             delay(3000)
             controllVisibility = false
+        }
+    }
+    LaunchedEffect(showBifgtness, showValue) {
+        if (showBifgtness) {
+            delay(1500)
+            showBifgtness = false
+        }
+        if (showValue) {
+            delay(1500)
+            showValue = false
         }
     }
 
@@ -103,7 +138,7 @@ fun CustomVideoPlayer(
             .background(Color.Black)
             .clipToBounds()
             .pointerInput(Unit) {
-                if(showOverLayUI) {
+                if (showOverLayUI) {
                     detectTapGestures(
                         onTap = { controllVisibility = !controllVisibility },
                         onDoubleTap = { offset ->
@@ -133,6 +168,74 @@ fun CustomVideoPlayer(
                         }
                     )
                 }
+            }
+            .pointerInput(Unit) {
+                if (showOverLayUI)
+                    detectVerticalDragGestures(
+                        onDragStart = { offset ->
+                            isRightDrag = offset.x > size.width / 2
+                            if (isRightDrag) {
+
+                                val window = (view.context as? android.app.Activity)?.window
+                                val layoutParams = window?.attributes
+                                initialBrightness =
+                                    layoutParams?.screenBrightness?.takeIf { it >= 0f } ?: 0.5f
+                                currentDragBrightness = initialBrightness
+                                showBifgtness = true
+                                delaySliderBrightness = true
+                            } else {
+                                initialVolume = volume
+                                currentDragVolume = initialVolume
+                                showValue = true
+                                delaySliderVolume = true
+                            }
+                        },
+//                        onDragEnd = {
+//                            if (isRightDrag) {
+//                                showBifgtness = false
+//                            } else {
+//                                showValue = false
+//                            }
+//                        },
+                        onDragCancel = {
+                            if (isRightDrag) {
+                                val window = (view.context as? android.app.Activity)?.window
+                                window?.let {
+                                    val layoutParams = it.attributes
+                                    layoutParams.screenBrightness = initialBrightness
+                                    it.attributes = layoutParams
+                                }
+                                showBifgtness = false
+                            } else {
+//                                viewModel.exoPlayer.volume = initialVolume
+                                viewModel.volumeReading(initialVolume)
+                                showValue = false
+                            }
+                        },
+                        onVerticalDrag = { _, dragAmount ->
+                            val deltaY = dragAmount
+                            val sensitivity = 1f / 500f
+                            val changeAmount = -deltaY * sensitivity
+
+                            if (isRightDrag) {
+                                val newBrightness =
+                                    (currentDragBrightness + changeAmount).coerceIn(0f, 1f)
+                                currentDragBrightness = newBrightness
+                                val window = (view.context as? android.app.Activity)?.window
+                                window?.let {
+                                    val layoutParams = it.attributes
+                                    layoutParams.screenBrightness = newBrightness
+                                    it.attributes = layoutParams
+                                }
+                            } else {
+                                val newVolume = (currentDragVolume + changeAmount).coerceIn(0f, 1f)
+                                currentDragVolume = newVolume
+//                                viewModel.exoPlayer.volume = newVolume
+                                viewModel.volumeReading(newVolume)
+
+                            }
+                        }
+                    )
             },
         contentAlignment = Alignment.Center
     ) {
@@ -149,7 +252,7 @@ fun CustomVideoPlayer(
             },
             modifier = Modifier.fillMaxSize()
         )
-        if(isLongPress) {
+        if (isLongPress) {
             AnimatedVisibility(
                 visible = isLongPress,
                 enter = fadeIn(),
@@ -162,7 +265,8 @@ fun CustomVideoPlayer(
                         .background(Color.Black.copy(alpha = 0.3f))
                 )
                 Row(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .align(Alignment.Center),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -179,6 +283,113 @@ fun CustomVideoPlayer(
                 }
             }
         }
+        if (isFullScreen) {
+            Log.e("check", "CustomVideoPlayer: $showBifgtness & $showValue")
+            if (showBifgtness) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 12.dp, bottom = 15.dp)
+                        .background(
+                            Color.LightGray.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedVisibility(
+                        visible = delaySliderBrightness,
+                    )
+                    {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Bottom,
+                            modifier = Modifier.width(80.dp).padding(vertical = 8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.height(100.dp).width(40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CustomSlider(
+                                    currentDuration = (currentDragBrightness * 1000).toLong(),
+                                    totalDuration = 1000,
+                                    onValueChage = { sliderValue ->
+                                        val newBrightness = (sliderValue / 1000f).coerceIn(0f, 1f)
+                                        currentDragBrightness = newBrightness
+                                        val window = (view.context as? android.app.Activity)?.window
+                                        window?.let {
+                                            val layoutParams = it.attributes
+                                            layoutParams.screenBrightness = newBrightness
+                                            it.attributes = layoutParams
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .requiredWidth(130.dp)
+                                        .requiredHeight(40.dp)
+                                        .rotate(270f)
+                                )
+                            }
+                            Text(
+                                text = "Brightness\n${(currentDragBrightness * 100).toInt()}%",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (showValue) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 12.dp, bottom = 15.dp)
+                        .background(
+                            Color.LightGray.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedVisibility(
+                        visible = delaySliderVolume,
+                    )
+                    {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Bottom,
+                            modifier = Modifier.width(80.dp).padding(vertical = 8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.height(100.dp).width(40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CustomSlider(
+                                    currentDuration = (currentDragVolume * 1000).toLong(),
+                                    totalDuration = 1000,
+                                    onValueChage = { sliderValue ->
+                                        val newVolume = (sliderValue / 1000f).coerceIn(0f, 1f)
+                                        currentDragVolume = viewModel.valume.value
+//                                        viewModel.exoPlayer.volume = newVolume
+                                        viewModel.volumeReading(newVolume)
+                                        if(newVolume == 0f) viewModel.mute(true) else viewModel.mute(false)
+                                    },
+                                    modifier = Modifier
+                                        .requiredWidth(130.dp)
+                                        .requiredHeight(40.dp)
+                                        .rotate(270f)
+                                )
+                            }
+                            Text(
+                                text = "Volume\n${(currentDragVolume * 100).toInt()}%",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
         // Double Tap Indicators (placed outside controllVisibility so they work anytime)
         AnimatedVisibility(
@@ -186,12 +397,6 @@ fun CustomVideoPlayer(
             enter = fadeIn(), exit = fadeOut(),
             modifier = Modifier.align(Alignment.CenterStart)
         ) {
-//            Box(modifier = Modifier
-//                .fillMaxHeight()
-//                .clip(shape = RoundedCornerShape(topEnd =80.dp, bottomEnd = 80.dp))
-//                .fillMaxWidth(0.5f) // Covers left half
-//                .background(Color.Black.copy(alpha = 0.3f))
-//            )
             CustomOnDouble(
                 visible = isForwardVisible && !isRifgtDoubleTap,
                 icon = Icons.Default.Replay,
@@ -206,12 +411,6 @@ fun CustomVideoPlayer(
             enter = fadeIn(), exit = fadeOut(),
             modifier = Modifier.align(Alignment.CenterEnd)
         ) {
-//            Box(modifier = Modifier
-//                .fillMaxHeight()
-//                .clip(shape = RoundedCornerShape(topStart =80.dp, bottomStart = 80.dp))
-//                .fillMaxWidth(0.5f) // Covers right half
-//                .background(Color.Black.copy(alpha = 0.3f))
-//            )
             CustomOnDouble(
                 visible = isForwardVisible && isRifgtDoubleTap,
                 icon = Icons.Default.Replay,
@@ -225,16 +424,16 @@ fun CustomVideoPlayer(
                 visible = controllVisibility,
                 enter = fadeIn(),
                 exit = fadeOut(),
-                modifier = Modifier.matchParentSize()
+                modifier = Modifier.fillMaxSize()
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                if(!isLongPress) {
-                    CustomControls(
-                        modifier = Modifier.align(Alignment.Center),
-                        viewModel = viewModel,
-                        playPause = playPauseState
-                    )
-                }
+                    if (!isLongPress) {
+                        CustomControls(
+                            modifier = Modifier.align(Alignment.Center),
+                            viewModel = viewModel,
+                            playPause = playPauseState
+                        )
+                    }
                     slider(
                         Modifier
                             .align(Alignment.BottomCenter)

@@ -1,7 +1,9 @@
 package com.example.video_player_lib.presentation.components
 
+import android.annotation.SuppressLint
 import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,33 +37,43 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.media3.common.util.UnstableApi
+import com.example.video_player_lib.api.view.CustomVideoPlayer
+import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 import com.example.video_player_lib.domin.model.LocalVideo
 import com.example.video_player_lib.presentation.MediaLibraryScreen
 import com.example.video_player_lib.presentation.VideoPickerViewModel
 import com.example.video_player_lib.utils.formatTime
 import com.example.video_player_lib.utils.timeStampToLong
 
+@SuppressLint("ViewModelConstructorInComposable")
+@OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.R)
 @Composable
 fun App(modifier: Modifier = Modifier) {
     var selectedVideo by remember { mutableStateOf<LocalVideo?>(null) }
     val viewModel: VideoPickerViewModel = hiltViewModel()
-    val isFullScreenEnabled = remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     var timeStamp by remember { mutableStateOf(0L) }
     var addNote by remember { mutableStateOf("") }
-    val notesList = viewModel.listOfNotes.collectAsState().value
-
-
+    val context = LocalContext.current
+    val videplayViewModel : VideoPlayerViewModel = remember {
+        VideoPlayerViewModel(viewModel.exoPlayer, context)
+    }
+    val isFullScreenEnabled = videplayViewModel.isFullScreen.collectAsState().value
+    val notesList = videplayViewModel.listOfNotes.collectAsState().value
+    val id = videplayViewModel.id.collectAsState().value
 
     LaunchedEffect(viewModel.isPressed) {
         viewModel.isPressed.collect {
             selectedVideo = null
         }
     }
+
 
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -74,15 +86,19 @@ fun App(modifier: Modifier = Modifier) {
                 selectedVideo = null
             }
             Column {
-                ExoVideoPlayer(
-                    id = selectedVideo!!.id,
+//                ExoVideoPlayer(
+//                    id = selectedVideo!!.id,
+//                    uri = selectedVideo!!.uri,
+//                    mimeType = selectedVideo!!.mimeType,
+//                    name = selectedVideo!!.name
+//                ) { isFullScreen ->
+//                    isFullScreenEnabled.value = isFullScreen
+//                }
+                CustomVideoPlayer(
                     uri = selectedVideo!!.uri,
-                    mimeType = selectedVideo!!.mimeType,
-                    name = selectedVideo!!.name
-                ) { isFullScreen ->
-                    isFullScreenEnabled.value = isFullScreen
-                }
-                if (!isFullScreenEnabled.value) {
+                    viewModel = videplayViewModel,
+                )
+                if (!isFullScreenEnabled) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -155,11 +171,16 @@ fun App(modifier: Modifier = Modifier) {
                                                             RoundedCornerShape(4.dp)
                                                         )
                                                         .clickable {
-                                                            viewModel.exoPlayer.seekTo(
+                                                            videplayViewModel.seekTo(
                                                                 timeStampToLong(
                                                                     note.substringBefore("-").trim()
                                                                 )
                                                             )
+//                                                            videplayViewModel.exoPlayer.seekTo(
+//                                                                timeStampToLong(
+//                                                                    note.substringBefore("-").trim()
+//                                                                )
+//                                                            )
                                                         }
                                                         .padding(10.dp), // Inner padding for the Row
                                                     horizontalArrangement = Arrangement.Start, // Changed to Start so the box is next to the text
@@ -216,17 +237,17 @@ fun App(modifier: Modifier = Modifier) {
                                     .padding(horizontal = 16.dp, vertical = 8.dp)
                                     .onFocusChanged { focusState ->
                                         if (focusState.isFocused) {
-                                            timeStamp = viewModel.pauseVideo()
+                                            timeStamp = videplayViewModel.pauseVideo()
                                         }
                                     },
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                                 keyboardActions = KeyboardActions(
                                     onDone = {
-                                        viewModel.resumeVideo()
+                                        videplayViewModel.play()
                                         focusManager.clearFocus()
-                                        viewModel.addNote(
+                                        videplayViewModel.addNote(
                                             note = "${formatTime(timeStamp)} - ${addNote}",
-                                            id = selectedVideo!!.id
+                                            id = id
                                         )
                                         timeStamp = 0L
                                         addNote = ""

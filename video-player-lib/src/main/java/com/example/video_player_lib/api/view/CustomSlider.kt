@@ -11,32 +11,59 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
+import com.example.video_player_lib.utils.timeStampToLong
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CustomSlider(modifier: Modifier = Modifier, viewModel: VideoPlayerViewModel) {
+fun CustomSlider(modifier: Modifier = Modifier,
+                 currentDuration: Long = 0L, totalDuration: Long = 0L,
+                 onValueChage : (value: Float) -> Unit ={},
+                 onValueChangeFinished: () -> Unit = {},
+                 id: Long = 0L,                   // Current video ID to filter matching notes
+                 noteList: Map<Long, List<String>> = emptyMap(), // Map containing timestamp note strings
+) {
 
-    val currentPosition = viewModel.currentPosition.collectAsState().value
-    val duration = viewModel.duration.collectAsState().value
+    var localSliderValue by remember { mutableFloatStateOf(currentDuration.toFloat()) }
 
+    // UI state block: Prevents background ExoPlayer ticks from hijacking user input midway
+    var isUserDragging by remember { mutableStateOf(false) }
+
+    LaunchedEffect(currentDuration) {
+        if (!isUserDragging) {
+            localSliderValue = currentDuration.toFloat()
+        }
+    }
 
     Slider(
-        value = currentPosition.coerceIn(0L,duration.coerceAtLeast(0L)).toFloat(),
-        onValueChange = { viewModel.seekTo(it.toLong()) },
-        valueRange = 0f..duration.coerceAtLeast(1L).toFloat(),
+        value = localSliderValue.coerceIn(0f, totalDuration.toFloat().coerceAtLeast(1f)),
+        onValueChange = {
+            isUserDragging = true
+            localSliderValue = it
+            onValueChage(it) },
+        onValueChangeFinished = {
+            isUserDragging = false
+            onValueChangeFinished() // Re-enables standard background ticker tracking safely
+        },
+        valueRange = 0f..totalDuration.toFloat(),
         modifier = modifier
-            .fillMaxWidth()
-            .height(12.dp)
-            .padding(horizontal = 8.dp, )
-        ,
+            .height(24.dp)
+            .padding(horizontal = 8.dp),
         thumb = {
             Box(
                 modifier = Modifier
@@ -54,24 +81,24 @@ fun CustomSlider(modifier: Modifier = Modifier, viewModel: VideoPlayerViewModel)
                         val trackWidth = size.width
                         val trackHeight = size.height
 
-//                        noteList.forEach {
-//                            if (id == it.key) {
-//                                it.value.forEach { note ->
-//                                    val progress =
-//                                        timeStampToLong(
-//                                            note.substringBefore(
-//                                                " - "
-//                                            ).trim()
-//                                        ) / duration.coerceAtLeast(1L).toFloat()
-//                                    val xOffset = progress * trackWidth
-//                                    drawRect(
-//                                        Color.Red,
-//                                        topLeft = Offset(xOffset - 1f, 0f),
-//                                        size = Size(16f, trackHeight + 2)
-//                                    )
-//                                }
-//                            }
-//                        }
+                        noteList.forEach {
+                            if (id == it.key) {
+                                it.value.forEach { note ->
+                                    val progress =
+                                        timeStampToLong(
+                                            note.substringBefore(
+                                                " - "
+                                            ).trim()
+                                        ) / totalDuration.coerceAtLeast(1L).toFloat()
+                                    val xOffset = progress * trackWidth
+                                    drawRect(
+                                        Color.Red,
+                                        topLeft = Offset(xOffset - 1f, 0f),
+                                        size = Size(16f, trackHeight + 2)
+                                    )
+                                }
+                            }
+                        }
                     },
                 drawStopIndicator = null,
                 thumbTrackGapSize = 0.dp,

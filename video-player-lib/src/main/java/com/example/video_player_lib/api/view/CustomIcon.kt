@@ -1,5 +1,6 @@
 package com.example.video_player_lib.api.view
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,6 +30,7 @@ fun CustomIcon(
             tint = color,
             modifier = modifier
                 .size(size.dp)
+                .background(Color.LightGray.copy(alpha = 0.5f), shape = androidx.compose.foundation.shape.CircleShape)
 
         )
     }

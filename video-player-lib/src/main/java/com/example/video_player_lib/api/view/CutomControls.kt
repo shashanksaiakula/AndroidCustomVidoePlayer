@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Replay5
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -21,29 +23,35 @@ import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 
 @OptIn(UnstableApi::class)
 @Composable
-fun CustomControls(modifier: Modifier = Modifier,
-                    viewModel: VideoPlayerViewModel,
-                    playPause : String = "Play",
-                    ) {
+fun CustomControls(
+    modifier: Modifier = Modifier,
+    viewModel: VideoPlayerViewModel,
+    playPause: String = "Play",
+) {
 
     val isFullScreen = viewModel.isFullScreen.collectAsState().value
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (isFullScreen) Modifier.padding(horizontal = 56.dp, vertical = 16.dp) else Modifier.padding(16.dp))
+            .then(
+                if (isFullScreen) Modifier.padding(
+                    horizontal = 56.dp,
+                    vertical = 16.dp
+                ) else Modifier.padding(16.dp)
+            )
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = if (playPause == "Replay") Arrangement.SpaceBetween else Arrangement.SpaceAround
     ) {
         CustomIcon(
-            icon = Icons.Default.Replay5,
+            icon = Icons.Default.SkipPrevious,
             contentDescription = "Forward 5 seconds",
             size = 48,
-            onClick = { viewModel.seekByReverse(5000L) }
+            onClick = { viewModel.playPervious() }
         )
         CustomIcon(
-            icon = when(playPause) {
+            icon = when (playPause) {
                 "Play" -> Icons.Default.PlayArrow
                 "Replay" -> Icons.Default.Replay
                 else -> Icons.Default.Pause
@@ -52,14 +60,12 @@ fun CustomControls(modifier: Modifier = Modifier,
             size = 48,
             onClick = { viewModel.togglePlayPause(playPause) }
         )
-
         CustomIcon(
-            icon = Icons.Default.Forward5,
+            icon = Icons.Default.SkipNext,
             contentDescription = "Forward 5 seconds",
             size = 48,
-            onClick = { viewModel.seekByForward(5000L) }
+            onClick = { viewModel.playNext() }
         )
-
     }
 
 }
