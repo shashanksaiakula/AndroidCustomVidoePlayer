@@ -6,6 +6,7 @@ import android.view.View
 import androidx.annotation.OptIn
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -16,6 +17,7 @@ import androidx.media3.exoplayer.RenderersFactory
 import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.ui.PlayerView
 import com.example.video_player_lib.api.view.CustomVideoPlayer
+import com.example.video_player_lib.api.viewmodel.TranscriptViewModel
 import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 
 @OptIn(UnstableApi::class)
@@ -53,14 +55,14 @@ object ExoPlayerUtils {
         }
 
     }
-    fun getFullPlayerView(context: Context, viewModel: VideoPlayerViewModel, uri: Uri?,showOverLayUI: Boolean) : View {
+    fun getFullPlayerView(context: Context, viewModel: VideoPlayerViewModel, uri: Uri?,showOverLayUI: Boolean,transcriptViewModel: TranscriptViewModel) : View {
         return ComposeView(context).apply {
             // This ensures the composition is disposed of when the view is removed from the screen
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
             setContent {
                 uri?.let {
-                    CustomVideoPlayer(uri = it, viewModel =viewModel, showOverLayUI = showOverLayUI)
+                    CustomVideoPlayer(uri = it, viewModel =viewModel, showOverLayUI = showOverLayUI, transcriptViewModel = transcriptViewModel)
                 }
             }
         }

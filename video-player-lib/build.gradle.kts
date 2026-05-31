@@ -94,4 +94,9 @@ dependencies {
     // load image
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil-video:2.7.0")
+
+    implementation("io.github.jamaismagic.ffmpeg:ffmpeg-kit-lts-16kb:6.0.1")
+
+    // add lib
+    implementation(project(":transcript-engine"))
 }

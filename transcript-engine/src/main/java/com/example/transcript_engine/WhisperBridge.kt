@@ -8,7 +8,7 @@ class WhisperBridge {
 
     external fun transcribeAudio(
         audioPath: String
-    ): String
+    ): HashMap<String, String>
 
     external fun releaseModel()
 

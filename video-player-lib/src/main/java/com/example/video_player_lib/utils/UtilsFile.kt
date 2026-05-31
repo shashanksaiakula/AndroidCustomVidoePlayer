@@ -2,6 +2,7 @@ package com.example.video_player_lib.utils
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 
 fun formatTime(milliseconds: Long): String {
     val totalSeconds = milliseconds / 1000
@@ -53,6 +54,36 @@ fun formatFileSize(size: Long): String {
         else -> "$size Bytes"
     }
 }
+
+fun extractStartSeconds(timestampKey: String): String {
+    return try {
+        // 1. Strip out all brackets and 's' formatting markers
+        val cleanKey = timestampKey
+            .replace("[", "")
+            .replace("]", "")
+            .replace("s", "")
+            .trim()
+
+        // 2. Isolate the starting time segment chunk string
+        val startChunkStr = cleanKey.split("->").firstOrNull()?.trim()
+
+        // 3. Convert cleanly to an Integer object type
+        val totalSeconds = startChunkStr?.toIntOrNull() ?: 0
+
+        // 4. Calculate minute and second divisions mathematically
+        val minutes = totalSeconds / 60
+        val remainingSeconds = totalSeconds % 60
+
+        // 5. Format string layout output cleanly with padded zeros (e.g., "01:05")
+        String.format("%02d:%02d", minutes, remainingSeconds)
+
+    } catch (e: Exception) {
+        Log.e("PARSING_ERROR", "Failed to parse timestamp key: $timestampKey", e)
+        "00:00" // Fallback layout string to preserve UI integrity on failure
+    }
+}
+
+
 
 fun shareVideo(context: Context, videoUri: android.net.Uri, videoName: String) {
     val shareIntent = Intent(Intent.ACTION_SEND).apply {

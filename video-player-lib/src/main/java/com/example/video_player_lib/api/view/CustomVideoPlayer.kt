@@ -1,5 +1,6 @@
 package com.example.video_player_lib.api.view
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import android.util.Log
 import androidx.annotation.OptIn
@@ -47,15 +48,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
+import com.example.video_player_lib.api.viewmodel.TranscriptViewModel
 import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 import kotlinx.coroutines.delay
 
+@SuppressLint("ViewModelConstructorInComposable")
 @OptIn(UnstableApi::class)
 @Composable
 fun CustomVideoPlayer(
     modifier: Modifier = Modifier,
     viewModel: VideoPlayerViewModel,
     uri: Uri,
+    transcriptViewModel: TranscriptViewModel,
     showOverLayUI: Boolean = true,
     slider: @Composable (modifier: Modifier, onRatioReceived: (Int) -> Unit) -> Unit = { sliderModifier, onRatioReceived ->
         CompleteSlider(
@@ -106,6 +110,8 @@ fun CustomVideoPlayer(
 
     LaunchedEffect(uri) {
         viewModel.preparePlayer(uri, null)
+        // 1. Load model ONCE when screen launches
+        transcriptViewModel.updateUri(uri)
     }
 
     LaunchedEffect(isForwardVisible) {
@@ -130,6 +136,11 @@ fun CustomVideoPlayer(
             delay(1500)
             showValue = false
         }
+    }
+
+    // 2. Process video whenever the viewmodel's uriData state shifts
+    LaunchedEffect(transcriptViewModel.uriData) {
+        transcriptViewModel.processVideo(view.context, transcriptViewModel.uriData)
     }
 
     Box(

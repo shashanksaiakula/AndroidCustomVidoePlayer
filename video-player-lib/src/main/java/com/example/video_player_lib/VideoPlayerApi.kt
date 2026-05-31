@@ -5,6 +5,7 @@ import android.net.Uri
 import android.view.View
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.example.video_player_lib.api.viewmodel.TranscriptViewModel
 import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 import com.example.video_player_lib.utils.ExoPlayerUtils
 
@@ -12,6 +13,7 @@ import com.example.video_player_lib.utils.ExoPlayerUtils
 class VideoPlayerApi(private val context: Context) {
     private var exoPlayer: ExoPlayer? = ExoPlayerUtils.createExoPlayer(context)
     private var viewModel: VideoPlayerViewModel? = VideoPlayerViewModel(exoPlayer!!,context)
+    private val transcriptViewModel = TranscriptViewModel()
     private var listener: VideoPlayerListener? = null
 
     private val playerListener = object : Player.Listener {
@@ -114,9 +116,9 @@ class VideoPlayerApi(private val context: Context) {
         return viewModel!!.isFullScreen.value
     }
 
-    fun getFullPlayerView(uri: Uri, showOverLayUI: Boolean): View {
+    fun getFullPlayerView(uri: Uri, showOverLayUI: Boolean, transcriptViewModel: TranscriptViewModel): View {
         viewModel!!.getIdFromUri(uri)
-        return ExoPlayerUtils.getFullPlayerView(context, viewModel!!, uri, showOverLayUI)
+        return ExoPlayerUtils.getFullPlayerView(context, viewModel!!, uri, showOverLayUI, transcriptViewModel)
     }
 }
 

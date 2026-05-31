@@ -2,12 +2,14 @@ package com.example.video_player_lib.presentation.components
 
 import android.annotation.SuppressLint
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,14 +18,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,11 +47,14 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.media3.common.util.UnstableApi
+import com.example.transcript_engine.copyModelToStorage
 import com.example.video_player_lib.api.view.CustomVideoPlayer
+import com.example.video_player_lib.api.viewmodel.TranscriptViewModel
 import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 import com.example.video_player_lib.domin.model.LocalVideo
 import com.example.video_player_lib.presentation.MediaLibraryScreen
 import com.example.video_player_lib.presentation.VideoPickerViewModel
+import com.example.video_player_lib.utils.extractStartSeconds
 import com.example.video_player_lib.utils.formatTime
 import com.example.video_player_lib.utils.timeStampToLong
 
@@ -57,6 +65,7 @@ import com.example.video_player_lib.utils.timeStampToLong
 fun App(modifier: Modifier = Modifier) {
     var selectedVideo by remember { mutableStateOf<LocalVideo?>(null) }
     val viewModel: VideoPickerViewModel = hiltViewModel()
+    val transcriptViewModel : TranscriptViewModel = hiltViewModel()
     val focusManager = LocalFocusManager.current
     var timeStamp by remember { mutableStateOf(0L) }
     var addNote by remember { mutableStateOf("") }
@@ -67,6 +76,7 @@ fun App(modifier: Modifier = Modifier) {
     val isFullScreenEnabled = videplayViewModel.isFullScreen.collectAsState().value
     val notesList = videplayViewModel.listOfNotes.collectAsState().value
     val id = videplayViewModel.id.collectAsState().value
+    val transcript by transcriptViewModel.transcript.collectAsState()
 
     LaunchedEffect(viewModel.isPressed) {
         viewModel.isPressed.collect {
@@ -74,7 +84,84 @@ fun App(modifier: Modifier = Modifier) {
         }
     }
 
+    LaunchedEffect(transcriptViewModel.isModelLoaded) {
+        transcriptViewModel.loadWhisperModel(context){ model ->
+            copyModelToStorage(model)
+        }
+    }
 
+//    LaunchedEffect(Unit) {
+//
+////        val uri = selectedVideo!!.uri ?: return@LaunchedEffect
+//
+//        isLoading = true
+//
+//        try {
+//
+//            val realVideoPath =
+//                withContext(Dispatchers.IO) {
+//
+//                    copyUriToFile(
+//                        context,
+//                        selectedVideo!!.uri
+//                    )
+//                }
+//
+//            Log.e(
+//                "WHISPER",
+//                "VIDEO COPIED"
+//            )
+//
+//            val wavPath =
+//                AudioExtractor.extractAudio(
+//                    context,
+//                    realVideoPath
+//                )
+//
+//            if (wavPath == null) {
+//
+//                Log.e(
+//                    "WHISPER",
+//                    "AUDIO EXTRACTION FAILED"
+//                )
+//
+//                isLoading = false
+//
+//                return@LaunchedEffect
+//            }
+//
+//            Log.e(
+//                "WHISPER",
+//                "STARTING JNI"
+//            )
+//
+//            val result =
+//                withContext(Dispatchers.IO) {
+//
+//                    bridge.transcribeAudio(
+//                        wavPath
+//                    )
+//                }
+//
+//            Log.e(
+//                "WHISPER_RESULT",
+//                result
+//            )
+//
+//            transcript = result
+//
+//        } catch (e: Exception) {
+//
+//            Log.e(
+//                "WHISPER_ERROR",
+//                e.stackTraceToString()
+//            )
+//
+//        } finally {
+//
+//            isLoading = false
+//        }
+//    }
 
     Box(modifier = modifier.fillMaxSize()) {
         if (selectedVideo == null) {
@@ -97,7 +184,9 @@ fun App(modifier: Modifier = Modifier) {
                 CustomVideoPlayer(
                     uri = selectedVideo!!.uri,
                     viewModel = videplayViewModel,
+                    transcriptViewModel = transcriptViewModel
                 )
+
                 if (!isFullScreenEnabled) {
                     Row(
                         modifier = Modifier
@@ -139,7 +228,24 @@ fun App(modifier: Modifier = Modifier) {
                                 ),
                             textAlign = TextAlign.Center
                         )
+                        Text(
+                            "Transcript",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    viewModel.selectTab("transcript")
+                                }
+                                .background(
+                                    color = if (viewModel.tabSelected.collectAsState().value == "transcript") MaterialTheme.colorScheme.secondary.copy(
+                                        alpha = .2f
+                                    ) else MaterialTheme.colorScheme.secondary.copy(alpha = .0f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ),
+                            textAlign = TextAlign.Center
+                        )
                     }
+
                     if (viewModel.tabSelected.collectAsState().value == "list") {
                         MediaLibraryScreen(
                             onVideoSelected = { video ->
@@ -255,6 +361,83 @@ fun App(modifier: Modifier = Modifier) {
                                 )
                             )
                         }
+                    }
+                    if(viewModel.tabSelected.collectAsState().value == "transcript") {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        ) {
+                            transcript.forEach { (key, value) ->
+                                item {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(8.dp)
+                                            .border(
+                                                4.dp,
+                                                Color.Gray.copy(alpha = .5f),
+                                                RoundedCornerShape(4.dp)
+                                            )
+                                            .clickable {
+                                                videplayViewModel.seekTo(
+                                                    timeStampToLong(
+                                                        extractStartSeconds(key.substringBefore("s -> "))
+                                                    )
+                                                )
+//                                                            videplayViewModel.exoPlayer.seekTo(
+//                                                                timeStampToLong(
+//                                                                    note.substringBefore("-").trim()
+//                                                                )
+//                                                            )
+                                            }
+                                            .padding(10.dp), // Inner padding for the Row
+                                        horizontalArrangement = Arrangement.Start, // Changed to Start so the box is next to the text
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            color = Color.Blue.copy(alpha = 0.2f), // Your background color
+                                            shape = RoundedCornerShape(4.dp),      // This creates the "Curve"
+                                        ) {
+                                            Text(
+                                                text = "[${extractStartSeconds(key.substringBefore("s -> "))} -> ${extractStartSeconds(key.substringAfter("s -> "))}]",
+                                                color = Color.Black,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(
+                                                    horizontal = 6.dp,
+                                                    vertical = 2.dp
+                                                ),
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
+                                            Text(
+                                                text = " $value",
+                                                color = Color.Black,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                modifier = Modifier.padding(start = 4.dp)
+                                            )
+                                    }
+                                }
+                            }
+                        }
+//                    val scrollState = rememberScrollState()
+//                        Column(
+//                            modifier = Modifier
+//                                .verticalScroll(state = scrollState)) {
+//                            if (transcript.isEmpty()) {
+//                                Text(
+//                                    text = "No transcript available. Start playback or processing...",
+//                                    style = MaterialTheme.typography.bodyMedium,
+//                                    color = Color.Gray
+//                                )
+//                            } else {
+//                                Text(
+//                                    text = transcript,
+//                                    style = MaterialTheme.typography.bodyLarge,
+//                                    color = MaterialTheme.colorScheme.onSurface
+//                                )
+//                            }
+//                        }
                     }
                 }
             }

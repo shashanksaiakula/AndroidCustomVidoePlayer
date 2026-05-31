@@ -127,179 +127,72 @@ Java_com_example_transcript_1engine_WhisperBridge_loadModel(
 }
 
 extern "C"
-JNIEXPORT jstring JNICALL
+JNIEXPORT jobject JNICALL
 Java_com_example_transcript_1engine_WhisperBridge_transcribeAudio(
         JNIEnv *env,
         jobject thiz,
         jstring audioPath
 ) {
+    // 1. Initialize LinkedHashMap to preserve order
+    jclass hashMapClass = env->FindClass("java/util/LinkedHashMap");
+    jmethodID hashMapInit = env->GetMethodID(hashMapClass, "<init>", "()V");
+    jobject hashMapObj = env->NewObject(hashMapClass, hashMapInit);
+    jmethodID hashMapPut = env->GetMethodID(hashMapClass, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
 
     if (!g_ctx) {
-
-        return env->NewStringUTF(
-                "MODEL NOT LOADED"
-        );
+        __android_log_print(ANDROID_LOG_ERROR, "WHISPER_NATIVE", "Context not initialized");
+        return hashMapObj;
     }
 
-    const char *audio_path =
-            env->GetStringUTFChars(
-                    audioPath,
-                    0
-            );
-
-    __android_log_print(
-            ANDROID_LOG_ERROR,
-            "WHISPER_NATIVE",
-            "READING WAV FILE"
-    );
-
-    auto samples =
-            read_wav_file(audio_path);
-
-    env->ReleaseStringUTFChars(
-            audioPath,
-            audio_path
-    );
+    // 2. Get audio path and read samples
+    const char *audio_path = env->GetStringUTFChars(audioPath, 0);
+    __android_log_print(ANDROID_LOG_ERROR, "WHISPER_NATIVE", "READING WAV FILE: %s", audio_path);
+    auto samples = read_wav_file(audio_path);
+    env->ReleaseStringUTFChars(audioPath, audio_path);
 
     if (samples.empty()) {
-
-        __android_log_print(
-                ANDROID_LOG_ERROR,
-                "WHISPER_NATIVE",
-                "EMPTY AUDIO"
-        );
-
-        return env->NewStringUTF(
-                "EMPTY AUDIO"
-        );
+        __android_log_print(ANDROID_LOG_ERROR, "WHISPER_NATIVE", "EMPTY AUDIO SAMPLES");
+        return hashMapObj;
     }
 
-    __android_log_print(
-            ANDROID_LOG_ERROR,
-            "WHISPER_NATIVE",
-            "SAMPLES SIZE: %d",
-            (int)samples.size()
-    );
-
-    whisper_full_params params =
-            whisper_full_default_params(
-                    WHISPER_SAMPLING_GREEDY
-            );
-
-    // PERFORMANCE
-    params.n_threads = 8;
-
-    // TRANSCRIPT QUALITY
+    // 3. Configure Whisper parameters
+    whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+    params.n_threads = 4; // Adjust based on device performance
     params.translate = false;
-    params.no_context = false;
-
-    params.single_segment = false;
-
-    // LOGGING
-    params.print_progress = false;
-    params.print_special = false;
-    params.print_realtime = false;
+    params.language  = "en"; // Or use "auto"
     params.print_timestamps = true;
 
-    // NO LIMITS
-    params.max_len = 0;
-    params.max_tokens = 0;
-
-    __android_log_print(
-            ANDROID_LOG_ERROR,
-            "WHISPER_NATIVE",
-            "BEFORE whisper_full"
-    );
-
-    int result =
-            whisper_full(
-                    g_ctx,
-                    params,
-                    samples.data(),
-                    samples.size()
-            );
-
-    __android_log_print(
-            ANDROID_LOG_ERROR,
-            "WHISPER_NATIVE",
-            "AFTER whisper_full"
-    );
+    // 4. Run the actual inference
+    __android_log_print(ANDROID_LOG_ERROR, "WHISPER_NATIVE", "STARTING whisper_full");
+    int result = whisper_full(g_ctx, params, samples.data(), samples.size());
 
     if (result != 0) {
-
-        __android_log_print(
-                ANDROID_LOG_ERROR,
-                "WHISPER_NATIVE",
-                "TRANSCRIPTION FAILED"
-        );
-
-        return env->NewStringUTF(
-                "TRANSCRIPTION FAILED"
-        );
+        __android_log_print(ANDROID_LOG_ERROR, "WHISPER_NATIVE", "TRANSCRIPTION FAILED: %d", result);
+        return hashMapObj;
     }
 
-    int n_segments =
-            whisper_full_n_segments(
-                    g_ctx
-            );
-
-    __android_log_print(
-            ANDROID_LOG_ERROR,
-            "WHISPER_NATIVE",
-            "SEGMENTS COUNT: %d",
-            n_segments
-    );
-
-    std::string transcript;
+    // 5. Extract segments into the LinkedHashMap
+    int n_segments = whisper_full_n_segments(g_ctx);
+    __android_log_print(ANDROID_LOG_ERROR, "WHISPER_NATIVE", "SEGMENTS FOUND: %d", n_segments);
 
     for (int i = 0; i < n_segments; ++i) {
+        const char *text = whisper_full_get_segment_text(g_ctx, i);
+        int64_t t0 = whisper_full_get_segment_t0(g_ctx, i);
+        int64_t t1 = whisper_full_get_segment_t1(g_ctx, i);
 
-        const char * text =
-                whisper_full_get_segment_text(
-                        g_ctx,
-                        i
-                );
+        // Convert centiseconds to seconds for the key
+        std::string timeKey = "[" + std::to_string(t0 / 100) + "s -> " + std::to_string(t1 / 100) + "s]";
 
-        int64_t t0 =
-                whisper_full_get_segment_t0(
-                        g_ctx,
-                        i
-                );
+        jstring jKey = env->NewStringUTF(timeKey.c_str());
+        jstring jValue = env->NewStringUTF(text);
 
-        int64_t t1 =
-                whisper_full_get_segment_t1(
-                        g_ctx,
-                        i
-                );
+        env->CallObjectMethod(hashMapObj, hashMapPut, jKey, jValue);
 
-        transcript += "[";
-
-        transcript += std::to_string(
-                t0 / 100
-        );
-
-        transcript += "s -> ";
-
-        transcript += std::to_string(
-                t1 / 100
-        );
-
-        transcript += "s] ";
-
-        transcript += text;
-
-        transcript += "\n";
+        env->DeleteLocalRef(jKey);
+        env->DeleteLocalRef(jValue);
     }
 
-    __android_log_print(
-            ANDROID_LOG_ERROR,
-            "WHISPER_NATIVE",
-            "TRANSCRIPTION FINISHED"
-    );
-
-    return env->NewStringUTF(
-            transcript.c_str()
-    );
+    return hashMapObj;
 }
 
 extern "C"

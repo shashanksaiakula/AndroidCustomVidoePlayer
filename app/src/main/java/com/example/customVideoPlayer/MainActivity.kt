@@ -16,6 +16,7 @@ import com.arthenica.ffmpegkit.FFmpegKit
 import com.example.customVideoPlayer.ui.theme.MyApplicationTheme
 import com.example.transcript_engine.WhisperBridge
 import com.example.transcript_engine.copyModelToStorage
+import com.example.video_player_lib.presentation.components.App
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
