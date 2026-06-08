@@ -9,7 +9,7 @@ android {
 
     compileSdk = 36
 
-    ndkVersion = "25.2.9519653"
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
 

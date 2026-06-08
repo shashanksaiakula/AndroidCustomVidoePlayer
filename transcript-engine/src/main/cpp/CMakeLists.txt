@@ -13,6 +13,9 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 
+set(CMAKE_ANDROID_ARM64_PAGE_SIZE 16384)
+add_link_options(-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384)
+
 # =========================
 # WHISPER / GGML DEFINES
 # =========================
