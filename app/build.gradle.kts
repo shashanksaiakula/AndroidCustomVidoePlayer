@@ -9,7 +9,7 @@ plugins {
 android {
     namespace = "com.example.customVideoPlayer"
     compileSdk = 36
-
+    ndkVersion = "27.0.12077973"
     defaultConfig {
         applicationId = "com.example.customVideoPlayer"
         minSdk = 26
@@ -82,7 +82,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil-video:2.7.0")
 
-    implementation("io.github.jamaismagic.ffmpeg:ffmpeg-kit-lts-16kb:6.0.1")
+    implementation("io.github.jamaismagic.ffmpeg:ffmpeg-kit-lts-16kb:6.1.7")
     // lib
     implementation(project(":video-player-lib"))
     implementation(project(":transcript-engine"))
