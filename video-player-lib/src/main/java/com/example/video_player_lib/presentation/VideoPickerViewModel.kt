@@ -45,7 +45,7 @@ class VideoPickerViewModel @Inject constructor(
     val isRotation = _isRotation.asStateFlow()
     private val _selectedVideoId = MutableStateFlow(0L)
     val selectedVideoId = _selectedVideoId.asStateFlow()
-    private val _tabSelected = MutableStateFlow("notes")
+    private val _tabSelected = MutableStateFlow("list")
     val tabSelected = _tabSelected.asStateFlow()
     private val _listOfNotes = MutableStateFlow<Map<Long, List<String>>>(emptyMap())
     val listOfNotes = _listOfNotes.asStateFlow()

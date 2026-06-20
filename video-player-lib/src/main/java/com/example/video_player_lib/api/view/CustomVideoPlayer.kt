@@ -1,6 +1,7 @@
 package com.example.video_player_lib.api.view
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.net.Uri
 import android.util.Log
 import androidx.annotation.OptIn
@@ -25,8 +26,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Brightness7
 import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,10 +53,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import com.example.video_player_lib.api.viewmodel.TranscriptViewModel
 import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
+import com.example.video_player_lib.presentation.components.BottomModel
+import com.example.video_player_lib.presentation.components.CustomTopBar
 import kotlinx.coroutines.delay
 
 @SuppressLint("ViewModelConstructorInComposable")
@@ -90,6 +100,7 @@ fun CustomVideoPlayer(
     var currentDragBrightness by remember { mutableStateOf(0.5f) }
     var delaySliderVolume by remember { mutableStateOf(false) }
     var delaySliderBrightness by remember { mutableStateOf(false) }
+    var showSpeedMenu by remember { mutableStateOf(false) }
     val volume by viewModel.valume.collectAsState()
 
     val view = LocalView.current
@@ -139,10 +150,8 @@ fun CustomVideoPlayer(
         }
     }
 
-    // 2. Process video whenever the viewmodel's uriData state shifts
-    LaunchedEffect(transcriptViewModel.uriData) {
-        transcriptViewModel.processVideo(view.context, transcriptViewModel.uriData)
-    }
+    // NOTE: Do not auto-start heavy transcription when uriData changes. Transcription is started
+    // on-demand from the UI (e.g., when user selects the Transcript tab) to avoid background CPU usage.
 
     Box(
         modifier = modifier
@@ -188,7 +197,7 @@ fun CustomVideoPlayer(
                             isRightDrag = offset.x > size.width / 2
                             if (isRightDrag) {
 
-                                val window = (view.context as? android.app.Activity)?.window
+                                val window = (view.context as? Activity)?.window
                                 val layoutParams = window?.attributes
                                 initialBrightness =
                                     layoutParams?.screenBrightness?.takeIf { it >= 0f } ?: 0.5f
@@ -211,7 +220,7 @@ fun CustomVideoPlayer(
 //                        },
                         onDragCancel = {
                             if (isRightDrag) {
-                                val window = (view.context as? android.app.Activity)?.window
+                                val window = (view.context as? Activity)?.window
                                 window?.let {
                                     val layoutParams = it.attributes
                                     layoutParams.screenBrightness = initialBrightness
@@ -229,28 +238,55 @@ fun CustomVideoPlayer(
                             val sensitivity = 1f / 500f
                             val changeAmount = -deltaY * sensitivity
 
-                            if (isRightDrag) {
-                                val newBrightness =
-                                    (currentDragBrightness + changeAmount).coerceIn(0f, 1f)
-                                currentDragBrightness = newBrightness
-                                val window = (view.context as? android.app.Activity)?.window
-                                window?.let {
-                                    val layoutParams = it.attributes
-                                    layoutParams.screenBrightness = newBrightness
-                                    it.attributes = layoutParams
-                                }
-                            } else {
-                                val newVolume = (currentDragVolume + changeAmount).coerceIn(0f, 1f)
-                                currentDragVolume = newVolume
+                            if (isFullScreen) {
+                                if (isRightDrag) {
+                                    val newBrightness =
+                                        (currentDragBrightness + changeAmount).coerceIn(0f, 1f)
+                                    currentDragBrightness = newBrightness
+                                    val window = (view.context as? Activity)?.window
+                                    window?.let {
+                                        val layoutParams = it.attributes
+                                        layoutParams.screenBrightness = newBrightness
+                                        it.attributes = layoutParams
+                                    }
+                                } else {
+                                    val newVolume =
+                                        (currentDragVolume + changeAmount).coerceIn(0f, 1f)
+                                    currentDragVolume = newVolume
 //                                viewModel.exoPlayer.volume = newVolume
-                                viewModel.volumeReading(newVolume)
+                                    viewModel.volumeReading(newVolume)
 
+                                }
                             }
                         }
                     )
             },
-        contentAlignment = Alignment.Center
+//        contentAlignment = Alignment.Center
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+//                        .background(Color.Red.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
+//                .align(Alignment.TopCenter)
+                .zIndex(1f)
+        ) {
+            CustomTopBar(
+                title = "",
+                isVideoPage = true,
+                navigationIcon = {
+                    IconButton(onClick = {
+
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showSpeedMenu = !showSpeedMenu }) {
+                        Icon(Icons.Default.MoreVert, "Settings", tint = Color.White)
+                    }
+                }
+            )
+        }
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
@@ -327,7 +363,7 @@ fun CustomVideoPlayer(
                                     onValueChage = { sliderValue ->
                                         val newBrightness = (sliderValue / 1000f).coerceIn(0f, 1f)
                                         currentDragBrightness = newBrightness
-                                        val window = (view.context as? android.app.Activity)?.window
+                                        val window = (view.context as? Activity)?.window
                                         window?.let {
                                             val layoutParams = it.attributes
                                             layoutParams.screenBrightness = newBrightness
@@ -340,12 +376,26 @@ fun CustomVideoPlayer(
                                         .rotate(270f)
                                 )
                             }
-                            Text(
-                                text = "Brightness\n${(currentDragBrightness * 100).toInt()}%",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                textAlign = TextAlign.Center
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Brightness7,
+                                    contentDescription = "Brightness",
+                                    modifier = Modifier
+                                        .padding(horizontal = 4.dp)
+                                        .size(24.dp),
+                                    tint = Color.White
+                                )
+                                Text(
+                                    text = "${(currentDragBrightness * 100).toInt()}%",
+                                    color = Color.White,
+                                    fontSize = 16.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }
@@ -383,7 +433,9 @@ fun CustomVideoPlayer(
                                         currentDragVolume = viewModel.valume.value
 //                                        viewModel.exoPlayer.volume = newVolume
                                         viewModel.volumeReading(newVolume)
-                                        if(newVolume == 0f) viewModel.mute(true) else viewModel.mute(false)
+                                        if (newVolume == 0f) viewModel.mute(true) else viewModel.mute(
+                                            false
+                                        )
                                     },
                                     modifier = Modifier
                                         .requiredWidth(130.dp)
@@ -391,12 +443,26 @@ fun CustomVideoPlayer(
                                         .rotate(270f)
                                 )
                             }
-                            Text(
-                                text = "Volume\n${(currentDragVolume * 100).toInt()}%",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                textAlign = TextAlign.Center
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.VolumeUp,
+                                    contentDescription = "Volume",
+                                    modifier = Modifier
+                                        .padding(horizontal = 4.dp)
+                                        .size(24.dp),
+                                    tint = Color.White
+                                )
+                                Text(
+                                    text = "${(currentDragVolume * 100).toInt()}%",
+                                    color = Color.White,
+                                    fontSize = 16.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }
@@ -456,5 +522,21 @@ fun CustomVideoPlayer(
                 }
             }
         }
+
+        BottomModel(
+            showSheet = showSpeedMenu,
+            onDismiss = { showSpeedMenu = !showSpeedMenu },
+            doubleTapSeek = {
+                viewModel.setDoubleTapSeek(it)
+            },
+            onSpeedChange = {
+                viewModel.onLongPress(it)
+            },
+            onLongPress ={
+                viewModel.setFastPlaySpreed(it)
+            },
+            isVideo = true,
+
+        )
     }
 }

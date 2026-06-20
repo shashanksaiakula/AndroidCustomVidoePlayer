@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -91,6 +92,7 @@ fun App(modifier: Modifier = Modifier) {
     val notesList = videplayViewModel.listOfNotes.collectAsState().value
     val id = videplayViewModel.id.collectAsState().value
     val transcript by transcriptViewModel.transcript.collectAsState()
+    val selectedTab = viewModel.tabSelected.collectAsState().value
     val copiedText = remember { mutableStateOf("") }
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
@@ -108,9 +110,12 @@ fun App(modifier: Modifier = Modifier) {
         }
     }
 
-    LaunchedEffect(transcriptViewModel.isModelLoaded) {
-        transcriptViewModel.loadWhisperModel(context) { model ->
-            copyModelToStorage(model)
+    // Do not auto-load model on composition. Model loading is triggered when user clicks the Transcript tab.
+
+    // When the model finishes loading and the Transcript tab is active, start transcription
+    LaunchedEffect(transcriptViewModel.isModelLoaded, selectedTab) {
+        if (transcriptViewModel.isModelLoaded && selectedTab == "transcript" && !transcriptViewModel.isLoading && transcriptViewModel.transcript.value.size <= 0) {
+            transcriptViewModel.processVideo(context, transcriptViewModel.uriData)
         }
     }
 
@@ -272,15 +277,19 @@ fun App(modifier: Modifier = Modifier) {
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
                         Text(
-                            "Notes",
+                            "List",
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier
                                 .weight(1f)
                                 .clickable {
-                                    viewModel.selectTab("notes")
+                                    viewModel.selectTab("list")
+                                    // If model is loaded and no transcription is active, unload to free resources
+                                    if (transcriptViewModel.isModelLoaded && !transcriptViewModel.isLoading) {
+                                        transcriptViewModel.unloadModel()
+                                    }
                                 }
                                 .background(
-                                    color = if (viewModel.tabSelected.collectAsState().value == "notes") MaterialTheme.colorScheme.secondary.copy(
+                                    color = if (viewModel.tabSelected.collectAsState().value == "list") MaterialTheme.colorScheme.secondary.copy(
                                         alpha = .2f
                                     ) else MaterialTheme.colorScheme.secondary.copy(alpha = .0f),
                                     shape = RoundedCornerShape(8.dp)
@@ -288,15 +297,19 @@ fun App(modifier: Modifier = Modifier) {
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            "List",
+                            "Notes",
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier
                                 .weight(1f)
                                 .clickable {
-                                    viewModel.selectTab("list")
+                                    viewModel.selectTab("notes")
+                                    // If model is loaded and no transcription is active, unload to free resources
+                                    if (transcriptViewModel.isModelLoaded && !transcriptViewModel.isLoading) {
+                                        transcriptViewModel.unloadModel()
+                                    }
                                 }
                                 .background(
-                                    color = if (viewModel.tabSelected.collectAsState().value == "list") MaterialTheme.colorScheme.secondary.copy(
+                                    color = if (viewModel.tabSelected.collectAsState().value == "notes") MaterialTheme.colorScheme.secondary.copy(
                                         alpha = .2f
                                     ) else MaterialTheme.colorScheme.secondary.copy(alpha = .0f),
                                     shape = RoundedCornerShape(8.dp)
@@ -310,6 +323,15 @@ fun App(modifier: Modifier = Modifier) {
                                 .weight(1f)
                                 .clickable {
                                     viewModel.selectTab("transcript")
+                                    // If model not loaded, load it. If already loaded, start transcription immediately.
+                                    if (!transcriptViewModel.isModelLoaded) {
+                                        transcriptViewModel.loadWhisperModel(context) { ctx ->
+                                            copyModelToStorage(ctx)
+                                        }
+                                    } else {
+                                        // Start transcription immediately if model already available
+                                        transcriptViewModel.processVideo(context, transcriptViewModel.uriData)
+                                    }
                                 }
                                 .background(
                                     color = if (viewModel.tabSelected.collectAsState().value == "transcript") MaterialTheme.colorScheme.secondary.copy(
@@ -320,7 +342,6 @@ fun App(modifier: Modifier = Modifier) {
                             textAlign = TextAlign.Center
                         )
                     }
-
                     if (viewModel.tabSelected.collectAsState().value == "list") {
                         MediaLibraryScreen(
                             onVideoSelected = { video ->
@@ -439,86 +460,115 @@ fun App(modifier: Modifier = Modifier) {
                         }
                     }
                     if (viewModel.tabSelected.collectAsState().value == "transcript") {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            transcript.forEach { (key, value) ->
-                                item {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(8.dp)
-                                            .border(
-                                                4.dp,
-                                                Color.Gray.copy(alpha = .5f),
-                                                RoundedCornerShape(4.dp)
-                                            )
-                                            .clickable {
-                                                videplayViewModel.seekTo(
-                                                    timeStampToLong(
-                                                        extractStartSeconds(key.substringBefore("s -> "))
-                                                    )
+                        // Show a small progress indicator while model is loading or transcription is running
+                        if ((transcriptViewModel.isModelLoading || transcriptViewModel.isLoading) && transcript.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator()
+                                Text(
+                                    text = if (transcriptViewModel.isModelLoading) "Loading model..." else "Generating transcript...",
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                        if (transcript.isEmpty() && !transcriptViewModel.isModelLoading && !transcriptViewModel.isLoading) {
+                            Text(
+                                text = "No transcript available. Tap Transcript to load model and start processing.",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            ) {
+                                transcript.forEach { (key, value) ->
+                                    item {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(8.dp)
+                                                .border(
+                                                    4.dp,
+                                                    Color.Gray.copy(alpha = .5f),
+                                                    RoundedCornerShape(4.dp)
                                                 )
-//                                                            videplayViewModel.exoPlayer.seekTo(
-//                                                                timeStampToLong(
-//                                                                    note.substringBefore("-").trim()
-//                                                                )
-//                                                            )
-                                            }
-                                            .padding(10.dp), // Inner padding for the Row
-                                        horizontalArrangement = Arrangement.Start, // Changed to Start so the box is next to the text
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Surface(
-                                            color = Color.Blue.copy(alpha = 0.2f), // Your background color
-                                            shape = RoundedCornerShape(4.dp),      // This creates the "Curve"
-                                        ) {
-                                            Text(
-                                                text = "[${extractStartSeconds(key.substringBefore("s -> "))} -> ${
-                                                    extractStartSeconds(
-                                                        key.substringAfter("s -> ")
+                                                .clickable {
+                                                    videplayViewModel.seekTo(
+                                                        timeStampToLong(
+                                                            extractStartSeconds(key.substringBefore("s -> "))
+                                                        )
                                                     )
-                                                }]",
-                                                color = Color.Black,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(
-                                                    horizontal = 6.dp,
-                                                    vertical = 2.dp
-                                                ),
-                                                style = MaterialTheme.typography.bodyMedium
-                                            )
-                                        }
-                                        SelectionContainer {
-                                            Text(
-                                                text = " $value",
-                                                color = Color.Black,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                modifier = Modifier
-                                                    .padding(start = 4.dp)
-                                                    .pointerInput(key) {
-                                                        detectTapGestures(
-                                                            onLongPress = {
-                                                                videplayViewModel.seekTo(
-                                                                    timeStampToLong(
-                                                                        extractStartSeconds(
-                                                                            key.substringBefore(
-                                                                                "s -> "
+                                                }
+                                                .padding(10.dp),
+                                            horizontalArrangement = Arrangement.Start,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Surface(
+                                                color = Color.Blue.copy(alpha = 0.2f),
+                                                shape = RoundedCornerShape(4.dp),
+                                            ) {
+                                                Text(
+                                                    text = "[${extractStartSeconds(key.substringBefore("s -> "))} -> ${
+                                                        extractStartSeconds(
+                                                            key.substringAfter("s -> ")
+                                                        )
+                                                    }]",
+                                                    color = Color.Black,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(
+                                                        horizontal = 6.dp,
+                                                        vertical = 2.dp
+                                                    ),
+                                                    style = MaterialTheme.typography.bodyMedium
+                                                )
+                                            }
+                                            SelectionContainer {
+                                                Text(
+                                                    text = " $value",
+                                                    color = Color.Black,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    modifier = Modifier
+                                                        .padding(start = 4.dp)
+                                                        .pointerInput(key) {
+                                                            detectTapGestures(
+                                                                onLongPress = {
+                                                                    videplayViewModel.seekTo(
+                                                                        timeStampToLong(
+                                                                            extractStartSeconds(
+                                                                                key.substringBefore(
+                                                                                    "s -> "
+                                                                                )
                                                                             )
                                                                         )
                                                                     )
-                                                                )
-                                                            }
-                                                        )
-                                                    }
-                                            )
+                                                                }
+                                                            )
+                                                        }
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-
+//                    }
 //                    val scrollState = rememberScrollState()
 //                        Column(
 //                            modifier = Modifier

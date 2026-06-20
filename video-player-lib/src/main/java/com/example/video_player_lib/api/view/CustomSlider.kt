@@ -2,7 +2,6 @@ package com.example.video_player_lib.api.view
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,7 +24,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
-import com.example.video_player_lib.api.viewmodel.VideoPlayerViewModel
 import com.example.video_player_lib.utils.timeStampToLong
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -36,8 +34,13 @@ fun CustomSlider(modifier: Modifier = Modifier,
                  onValueChage : (value: Float) -> Unit ={},
                  onValueChangeFinished: () -> Unit = {},
                  id: Long = 0L,                   // Current video ID to filter matching notes
-                 noteList: Map<Long, List<String>> = emptyMap(), // Map containing timestamp note strings
-) {
+                 noteList: Map<Long, List<String>> = emptyMap(), // Map containing timestamp note strings,
+                 color : Color = Color.White,
+                 thumbColor : Color = Color.Gray,
+                 activeTrackColor : Color = Color.White,
+                 inactiveTrackColor : Color = Color.Black.copy(alpha = 0.5f),
+                 step : Int = 0
+                 ) {
 
     var localSliderValue by remember { mutableFloatStateOf(currentDuration.toFloat()) }
 
@@ -61,6 +64,7 @@ fun CustomSlider(modifier: Modifier = Modifier,
             onValueChangeFinished() // Re-enables standard background ticker tracking safely
         },
         valueRange = 0f..totalDuration.toFloat(),
+        steps = step,
         modifier = modifier
             .height(24.dp)
             .padding(horizontal = 8.dp),
@@ -68,7 +72,7 @@ fun CustomSlider(modifier: Modifier = Modifier,
             Box(
                 modifier = Modifier
                     .size(16.dp)
-                    .background(Color.Gray, CircleShape)
+                    .background(thumbColor, CircleShape)
             )
         },
         track = { sliderState ->
@@ -103,8 +107,8 @@ fun CustomSlider(modifier: Modifier = Modifier,
                 drawStopIndicator = null,
                 thumbTrackGapSize = 0.dp,
                 colors = SliderDefaults.colors(
-                    activeTrackColor = Color.White,
-                    inactiveTrackColor = Color.Black.copy(alpha = 0.5f)
+                    activeTrackColor = activeTrackColor,
+                    inactiveTrackColor = inactiveTrackColor
                 )
             )
         }

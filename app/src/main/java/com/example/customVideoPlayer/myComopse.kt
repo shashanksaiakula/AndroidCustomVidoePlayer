@@ -79,6 +79,22 @@ fun myComopse(
             )
         }
     }
+    LaunchedEffect(Unit) {
+
+        withContext(Dispatchers.IO) {
+
+            val modelPath =
+                copyModelToStorage(context)
+
+            val loaded =
+                bridge.loadModel(modelPath)
+
+            Log.e(
+                "WHISPER_MODEL",
+                loaded.toString()
+            )
+        }
+    }
 
     // Process video when URI changes
     LaunchedEffect(uriData) {

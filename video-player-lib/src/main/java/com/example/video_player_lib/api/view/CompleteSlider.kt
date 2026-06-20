@@ -153,8 +153,8 @@ fun CompleteSlider(
         }
         CustomSlider(
             modifier = Modifier.fillMaxWidth(),
-            currentDuration = currentPosition,
-            totalDuration = duration,
+            currentDuration = if (currentPosition < 0) 0L else currentPosition,
+            totalDuration = if(duration < 0) 1L else duration,
             onValueChage = {
                 viewModel.seekTo(it.toLong())
             },

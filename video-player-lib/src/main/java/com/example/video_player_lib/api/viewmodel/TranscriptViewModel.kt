@@ -37,6 +37,8 @@ class TranscriptViewModel @Inject constructor(
         private set
     var isModelLoaded by mutableStateOf(false)
         private set
+    var isModelLoading by mutableStateOf(false)
+        private set
 
     private val _selectedWordDefinition = MutableStateFlow<WordDefinition?>(null)
     val selectedWordDefinition = _selectedWordDefinition.asStateFlow()
@@ -51,15 +53,18 @@ class TranscriptViewModel @Inject constructor(
 
         val appContext = context.applicationContext
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                try {
+            isModelLoading = true
+            try {
+                withContext(Dispatchers.IO) {
                     val modelPath = copyModelToStorage(appContext)
                     val loaded = bridge.loadModel(modelPath)
                     isModelLoaded = loaded
                     Log.e("WHISPER_MODEL", "Model loaded status: $loaded")
-                } catch (e: Exception) {
-                    Log.e("WHISPER_MODEL_ERROR", e.stackTraceToString())
                 }
+            } catch (e: Exception) {
+                Log.e("WHISPER_MODEL_ERROR", e.stackTraceToString())
+            } finally {
+                isModelLoading = false
             }
         }
     }
@@ -114,6 +119,13 @@ class TranscriptViewModel @Inject constructor(
                 _transcript.value = result
                 Log.e("WHISPER_RESULT", _transcript.value.entries.toString())
 
+                // Transcription finished; unload the native model to free resources
+                try {
+                    unloadModel()
+                } catch (e: Exception) {
+                    Log.e("WHISPER_MODEL_UNLOAD_ERR", e.stackTraceToString())
+                }
+
             } catch (e: Exception) {
                 Log.e("WHISPER_ERROR", e.stackTraceToString())
             } finally {
@@ -128,6 +140,20 @@ class TranscriptViewModel @Inject constructor(
     fun updateUri(newUri: Uri?) {
         uriData = newUri
         _transcript.value = emptyMap<String, String>() // Reset text for the next video
+    }
+
+    /**
+     * Unload the native model to free memory and stop any background work.
+     * Call this when the user leaves the transcript UI or when you want to reduce memory/CPU usage.
+     */
+    fun unloadModel() {
+        try {
+            bridge.releaseModel()
+        } catch (e: Exception) {
+            Log.e("WHISPER_MODEL_UNLOAD_ERR", e.stackTraceToString())
+        }
+
+        isModelLoaded = false
     }
 
     /**

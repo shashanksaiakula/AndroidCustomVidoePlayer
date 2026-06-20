@@ -175,9 +175,16 @@ class VideoPlayerViewModel @Inject constructor(
     fun onLongPress(speed: Float) {
         exoPlayer.setPlaybackSpeed(speed)
     }
+    fun speedChange(speed: Float) {
+        exoPlayer.setPlaybackSpeed(speed)
+    }
 
     fun setFastPlaySpreed(speed: Float) {
         _FastPlaybackSpeed.value = speed
+    }
+
+    fun setSeekSpeed(seek: Float) {
+        exoPlayer.setPlaybackSpeed(seek)
     }
 
     fun getTileStamp(): String {

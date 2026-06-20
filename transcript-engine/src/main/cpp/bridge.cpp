@@ -96,10 +96,14 @@ Java_com_example_transcript_1engine_WhisperBridge_loadModel(
             "LOADING MODEL"
     );
 
-    g_ctx =
-            whisper_init_from_file(
-                    model_path
-            );
+    // If a context already exists, free it first to avoid leaking memory or leaving threads running
+    if (g_ctx) {
+        whisper_free(g_ctx);
+        g_ctx = nullptr;
+        __android_log_print(ANDROID_LOG_ERROR, "WHISPER_NATIVE", "Existing model context freed before loading new model");
+    }
+
+    g_ctx = whisper_init_from_file(model_path);
 
     env->ReleaseStringUTFChars(
             modelPath,
@@ -156,8 +160,10 @@ Java_com_example_transcript_1engine_WhisperBridge_transcribeAudio(
     }
 
     // 3. Configure Whisper parameters
+    // Use conservative number of threads on mobile devices to reduce heat and battery usage.
+    // You can expose this as a setting if you want to tune per-device.
     whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
-    params.n_threads = 4; // Adjust based on device performance
+    params.n_threads = 2; // lower default to reduce CPU load / heat
     params.translate = false;
     params.language  = "en"; // Or use "auto"
     params.print_timestamps = true;

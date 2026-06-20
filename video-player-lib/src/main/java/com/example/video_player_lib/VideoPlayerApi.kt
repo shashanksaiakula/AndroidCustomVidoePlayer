@@ -70,9 +70,6 @@ class VideoPlayerApi(private val context: Context) {
         this.listener = listener
     }
 
-    fun fastFarwordSpeed(speed: Float) {
-        viewModel?.setFastPlaySpreed(speed)
-    }
 
     fun prepare(uri: Uri) {
         viewModel?.preparePlayer(uri)
